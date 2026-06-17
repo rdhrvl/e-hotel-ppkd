@@ -1,6 +1,6 @@
 <div>
     <h2 class="mb-2" style="font-size: 1.5rem; text-align: center;">Sign In</h2>
-    <p class="mb-6" style="text-align: center; font-size: 0.85rem; color: var(--text-muted);">Access your delivery dashboard</p>
+    <p class="mb-6" style="text-align: center; font-size: 0.85rem; color: var(--text-muted);">Access the Hotel Management System</p>
 
     <form wire:submit.prevent="login">
         <div class="form-group">
@@ -20,7 +20,7 @@
                 <input type="checkbox" wire:model="remember" style="accent-color: var(--accent-primary);">
                 Remember me
             </label>
-            <a href="{{ route('password.request') }}" style="font-size: 0.85rem; font-weight: 500;">Forgot Password?</a>
+            <a href="{{ route('password.request') }}" wire:navigate style="font-size: 0.85rem; font-weight: 500;">Forgot Password?</a>
         </div>
 
         <button type="submit" class="btn btn-primary w-full" wire:loading.attr="disabled">

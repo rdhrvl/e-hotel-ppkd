@@ -1,0 +1,75 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+
+class Booking extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'guest_name',
+        'guest_id',
+        'room_id',
+        'check_in_date',
+        'check_out_date',
+        'number_of_guests',
+        'status', // 'pending', 'confirmed', 'checked_in', 'checked_out'
+    ];
+
+    protected $casts = [
+        'check_in_date' => 'date',
+        'check_out_date' => 'date',
+    ];
+
+    /** @return BelongsTo<Room, $this> */
+    public function room(): BelongsTo
+    {
+        return $this->belongsTo(Room::class);
+    }
+
+    /** @return HasOne<GuestBill, $this> */
+    public function guestBill(): HasOne
+    {
+        return $this->hasOne(GuestBill::class);
+    }
+
+    /** @return HasMany<Payment, $this> */
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    /** @return HasMany<BookingItem, $this> */
+    public function bookingItems(): HasMany
+    {
+        return $this->hasMany(BookingItem::class);
+    }
+
+    /** @return BelongsToMany<Service, $this> */
+    public function services(): BelongsToMany
+    {
+        return $this->belongsToMany(Service::class, 'booking_items')
+            ->withPivot(['id', 'quantity', 'price', 'notes'])
+            ->withTimestamps();
+    }
+
+    /**
+     * Get the number of nights for the booking.
+     */
+    public function getNightsAttribute(): int
+    {
+        if (!$this->check_in_date || !$this->check_out_date) {
+            return 0;
+        }
+        return (int) $this->check_in_date->diffInDays($this->check_out_date);
+    }
+}

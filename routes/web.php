@@ -2,51 +2,53 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Livewire\Auth\Login;
-use App\Livewire\Auth\CreatePin;
 use App\Livewire\Auth\ForgotPassword;
-use App\Livewire\Dashboard\Home;
-use App\Livewire\Dashboard\ListDn;
-use App\Livewire\Dashboard\HistoryDn;
-use App\Livewire\Dashboard\Notifications;
-use App\Livewire\Settings\Index as SettingsIndex;
-use App\Livewire\Settings\ChangePassword;
-use App\Livewire\Settings\ChangePin;
-use App\Livewire\Settings\UploadESign;
-use App\Livewire\Settings\UploadEStamp;
+use App\Livewire\Auth\ResetPassword;
+use App\Livewire\Dashboard\RoomList;
+use App\Livewire\Dashboard\Bookings;
+use App\Livewire\Dashboard\GuestBills;
+use App\Livewire\Dashboard\Rooms;
+use App\Livewire\Dashboard\Users;
+use App\Livewire\Dashboard\Services;
+use App\Models\Booking;
 
 // Redirect root
 Route::get('/', function () {
     return auth()->check() ? redirect()->route('dashboard') : redirect()->route('login');
 });
 
-// Guest routes
+// ── Guest routes ─────────────────────────────────────────────────────────────
 Route::middleware('guest')->group(function () {
     Route::get('/login', Login::class)->name('login');
+
+    // Forgot / Reset Password
     Route::get('/forgot-password', ForgotPassword::class)->name('password.request');
+    Route::get('/reset-password/{token}', ResetPassword::class)->name('password.reset');
 });
 
-// Authenticated (PIN not necessarily set yet)
+// ── Authenticated routes ──────────────────────────────────────────────────────
 Route::middleware('auth')->group(function () {
-    Route::get('/create-pin', CreatePin::class)->name('pin.create');
     Route::post('/logout', function () {
         auth()->logout();
         request()->session()->invalidate();
         request()->session()->regenerateToken();
         return redirect()->route('login');
     })->name('logout');
-});
 
-// Authenticated + PIN required routes
-Route::middleware(['auth', 'pin.required'])->group(function () {
-    Route::get('/dashboard', Home::class)->name('dashboard');
-    Route::get('/delivery-notes', ListDn::class)->name('delivery-notes');
-    Route::get('/history', HistoryDn::class)->name('history');
-    Route::get('/notifications', Notifications::class)->name('notifications');
-    
-    // Settings
-    Route::get('/settings', SettingsIndex::class)->name('settings');
-    Route::get('/settings/password', ChangePassword::class)->name('settings.password');
-    Route::get('/settings/pin', ChangePin::class)->name('settings.pin');
-    Route::get('/settings/upload-sign', UploadESign::class)->name('settings.upload-sign');
-    Route::get('/settings/upload-stamp', UploadEStamp::class)->name('settings.upload-stamp');
+    // ── HMS Main screens ────────────────────────────────────────────────────
+    Route::get('/dashboard', RoomList::class)->name('dashboard');
+    Route::get('/bookings', Bookings::class)->name('bookings');
+    Route::get('/guest-bills', GuestBills::class)->name('guest-bills');
+
+    // Receipt Invoice (Printable A4)
+    Route::get('/bookings/{booking}/invoice', function (Booking $booking) {
+        return view('invoice', [
+            'booking' => $booking->load(['room.roomType', 'guestBill', 'bookingItems.service', 'payments']),
+        ]);
+    })->name('bookings.invoice');
+
+    // ── Admin-only screens ──────────────────────────────────────────────────
+    Route::get('/rooms', Rooms::class)->name('rooms');
+    Route::get('/admin/users', Users::class)->name('admin.users');
+    Route::get('/admin/services', Services::class)->name('admin.services');
 });

@@ -173,6 +173,11 @@
             letter-spacing: 0.5px;
         }
 
+        .sidebar-user-role.superadmin {
+            background: rgba(253,203,110,0.15);
+            color: #fdcb6e;
+        }
+
         .btn-logout {
             display: flex;
             align-items: center;
@@ -469,13 +474,8 @@
         <button @click="sidebarOpen = true" aria-label="Open menu">
             <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
         </button>
-        <span class="brand">E-DN</span>
-        <a href="{{ route('notifications') }}" class="notif-bell" aria-label="Notifications">
-            <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
-            @if(auth()->user()->unreadNotifications->count() > 0)
-                <span class="badge"></span>
-            @endif
-        </a>
+        <span class="brand">HMS</span>
+        <div style="width: 40px;"></div> {{-- Spacer to balance open menu button --}}
     </header>
 
     {{-- ── Sidebar Overlay ── --}}
@@ -486,8 +486,8 @@
     {{-- ── Sidebar ── --}}
     <aside class="sidebar" :class="{ 'open': sidebarOpen }">
         <div class="sidebar-brand">
-            <h1>E-DN</h1>
-            <span>Mobile Flow</span>
+            <h1>HMS</h1>
+            <span>Hotel Management</span>
         </div>
 
         <nav class="sidebar-nav">
@@ -496,44 +496,50 @@
             <a href="{{ route('dashboard') }}"
                class="nav-item {{ request()->routeIs('dashboard') ? 'active' : '' }}"
                @click="sidebarOpen = false">
-                <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                Dashboard
+                <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+                Room Board
             </a>
 
-            <a href="{{ route('delivery-notes') }}"
-               class="nav-item {{ request()->routeIs('delivery-notes') ? 'active' : '' }}"
-               @click="sidebarOpen = false">
-                <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5a2 2 0 01-2 2h-1M6 19a2 2 0 104 0M16 19a2 2 0 104 0"/></svg>
-                Delivery Notes
-            </a>
+            @if(auth()->user()->isAdmin() || auth()->user()->isFrontDesk())
+                <a href="{{ route('bookings') }}"
+                   class="nav-item {{ request()->routeIs('bookings') ? 'active' : '' }}"
+                   @click="sidebarOpen = false">
+                    <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    Registry
+                </a>
 
-            <a href="{{ route('history') }}"
-               class="nav-item {{ request()->routeIs('history') ? 'active' : '' }}"
-               @click="sidebarOpen = false">
-                <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                History
-            </a>
+                <a href="{{ route('guest-bills') }}"
+                   class="nav-item {{ request()->routeIs('guest-bills') ? 'active' : '' }}"
+                   @click="sidebarOpen = false">
+                    <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    Billing
+                </a>
+            @endif
 
-            <a href="{{ route('notifications') }}"
-               class="nav-item {{ request()->routeIs('notifications') ? 'active' : '' }}"
-               @click="sidebarOpen = false">
-                <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
-                Notifications
-                @if(auth()->user()->unreadNotifications->count() > 0)
-                    <span style="margin-left:auto;background:var(--accent-danger);color:#fff;font-size:0.65rem;padding:2px 8px;border-radius:10px;font-weight:700;">
-                        {{ auth()->user()->unreadNotifications->count() }}
-                    </span>
-                @endif
-            </a>
+            @if(auth()->user()->isAdmin())
+                <div class="nav-label" style="margin-top: 12px;">Admin</div>
 
-            <div class="nav-label" style="margin-top: 12px;">Account</div>
+                <a href="{{ route('rooms') }}"
+                   class="nav-item {{ request()->routeIs('rooms') ? 'active' : '' }}"
+                   @click="sidebarOpen = false">
+                    <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
+                    Room Config
+                </a>
 
-            <a href="{{ route('settings') }}"
-               class="nav-item {{ request()->routeIs('settings*') ? 'active' : '' }}"
-               @click="sidebarOpen = false">
-                <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-                Settings
-            </a>
+                <a href="{{ route('admin.users') }}"
+                   class="nav-item {{ request()->routeIs('admin.users') ? 'active' : '' }}"
+                   @click="sidebarOpen = false">
+                    <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                    User Management
+                </a>
+
+                <a href="{{ route('admin.services') }}"
+                   class="nav-item {{ request()->routeIs('admin.services') ? 'active' : '' }}"
+                   @click="sidebarOpen = false">
+                    <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>
+                    Services
+                </a>
+            @endif
         </nav>
 
         {{-- ── User Info ── --}}
@@ -544,7 +550,7 @@
                 </div>
                 <div>
                     <div class="sidebar-user-name">{{ auth()->user()->name }}</div>
-                    <span class="sidebar-user-role">{{ ucfirst(auth()->user()->role) }}</span>
+                    <span class="sidebar-user-role {{ auth()->user()->isSuperAdmin() ? 'superadmin' : '' }}">{{ auth()->user()->role ? auth()->user()->role->name : 'Staff' }}</span>
                 </div>
             </div>
             <form method="POST" action="{{ route('logout') }}">
@@ -567,10 +573,7 @@
                 @endisset
             </div>
             <div class="topbar-right">
-                <a href="{{ route('notifications') }}" class="notif-count-badge">
-                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/></svg>
-                    {{ auth()->user()->unreadNotifications->count() }} New
-                </a>
+                {{-- Plain placeholder topbar right --}}
             </div>
         </div>
 
@@ -584,28 +587,37 @@
         <a href="{{ route('dashboard') }}"
            class="bottom-nav-item {{ request()->routeIs('dashboard') ? 'active' : '' }}">
             <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-            Home
+            Rooms
         </a>
-        <a href="{{ route('delivery-notes') }}"
-           class="bottom-nav-item {{ request()->routeIs('delivery-notes') ? 'active' : '' }}">
-            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5a2 2 0 01-2 2h-1"/></svg>
-            DNs
-        </a>
-        <a href="{{ route('history') }}"
-           class="bottom-nav-item {{ request()->routeIs('history') ? 'active' : '' }}">
-            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            History
-        </a>
-        <a href="{{ route('notifications') }}"
-           class="bottom-nav-item {{ request()->routeIs('notifications') ? 'active' : '' }}">
-            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
-            Alerts
-        </a>
-        <a href="{{ route('settings') }}"
-           class="bottom-nav-item {{ request()->routeIs('settings*') ? 'active' : '' }}">
-            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09"/></svg>
-            Settings
-        </a>
+        @if(auth()->user()->isAdmin() || auth()->user()->isFrontDesk())
+            <a href="{{ route('bookings') }}"
+               class="bottom-nav-item {{ request()->routeIs('bookings') ? 'active' : '' }}">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                Bookings
+            </a>
+            <a href="{{ route('guest-bills') }}"
+               class="bottom-nav-item {{ request()->routeIs('guest-bills') ? 'active' : '' }}">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Bills
+            </a>
+        @endif
+        @if(auth()->user()->isAdmin())
+            <a href="{{ route('rooms') }}"
+               class="bottom-nav-item {{ request()->routeIs('rooms') ? 'active' : '' }}">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
+                Config
+            </a>
+            <a href="{{ route('admin.users') }}"
+               class="bottom-nav-item {{ request()->routeIs('admin.users') ? 'active' : '' }}">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                Users
+            </a>
+            <a href="{{ route('admin.services') }}"
+               class="bottom-nav-item {{ request()->routeIs('admin.services') ? 'active' : '' }}">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>
+                Services
+            </a>
+        @endif
     </nav>
 
     @livewireScripts

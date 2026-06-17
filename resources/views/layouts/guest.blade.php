@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ $title ?? 'Welcome' }} — E-DN</title>
+    <title>{{ $title ?? 'Welcome' }} — HMS</title>
 
     {{-- Google Fonts: Inter --}}
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -138,8 +138,8 @@
 
     <div class="guest-wrapper">
         <div class="guest-brand">
-            <h1>E-DN</h1>
-            <p>Mobile Flow</p>
+            <h1>HMS</h1>
+            <p>Hotel Management System</p>
         </div>
 
         <div class="guest-card">

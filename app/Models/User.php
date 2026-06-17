@@ -5,21 +5,19 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 /**
- * User model for the E-DN Mobile Flow application.
+ * User model for the Hotel Management System.
  *
  * @property int $id
  * @property string $name
  * @property string $phone
  * @property string $email
  * @property string $password
- * @property string|null $pin_hash
- * @property string $role
- * @property bool $biometric_enabled
+ * @property int|null $role_id
  * @property \Illuminate\Support\Carbon|null $email_verified_at
  * @property string|null $remember_token
  * @property \Illuminate\Support\Carbon $created_at
@@ -40,9 +38,7 @@ class User extends Authenticatable
         'phone',
         'email',
         'password',
-        'pin_hash',
-        'role',
-        'biometric_enabled',
+        'role_id',
     ];
 
     /**
@@ -53,7 +49,6 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
-        'pin_hash',
     ];
 
     /**
@@ -66,7 +61,6 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'biometric_enabled' => 'boolean',
         ];
     }
 
@@ -74,64 +68,37 @@ class User extends Authenticatable
     // Relationships
     // ---------------------------------------------------------------
 
-    /** @return HasMany<DeliveryNote, $this> */
-    public function deliveryNotes(): HasMany
+    /** @return BelongsTo<Role, $this> */
+    public function role(): BelongsTo
     {
-        return $this->hasMany(DeliveryNote::class);
-    }
-
-    /**
-     * Named `userNotifications` to avoid conflict with the Notifiable trait's
-     * built-in `notifications()` relationship.
-     *
-     * @return HasMany<UserNotification, $this>
-     */
-    public function userNotifications(): HasMany
-    {
-        return $this->hasMany(UserNotification::class);
-    }
-
-    /**
-     * Override default Notifiable unreadNotifications relation to use our simple notifications table.
-     *
-     * @return HasMany<UserNotification, $this>
-     */
-    public function unreadNotifications(): HasMany
-    {
-        return $this->hasMany(UserNotification::class)->where('is_read', false);
-    }
-
-    /** @return HasMany<Upload, $this> */
-    public function uploads(): HasMany
-    {
-        return $this->hasMany(Upload::class);
-    }
-
-    /** @return HasMany<UserDevice, $this> */
-    public function devices(): HasMany
-    {
-        return $this->hasMany(UserDevice::class);
+        return $this->belongsTo(Role::class);
     }
 
     // ---------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------
 
-    /** Determine whether the user has configured a transaction PIN. */
-    public function hasPinSet(): bool
+    /** Check if the user holds the superadmin role (unrestricted access). */
+    public function isSuperAdmin(): bool
     {
-        return ! is_null($this->pin_hash);
+        return $this->role?->slug === 'superadmin';
     }
 
-    /** Check if the user holds the warehouse role. */
-    public function isWarehouse(): bool
-    {
-        return $this->role === 'warehouse';
-    }
-
-    /** Check if the user holds the admin role. */
+    /** Check if the user holds the admin role (also true for superadmin). */
     public function isAdmin(): bool
     {
-        return $this->role === 'admin';
+        return in_array($this->role?->slug, ['admin', 'superadmin'], true);
+    }
+
+    /** Check if the user holds the front desk role. */
+    public function isFrontDesk(): bool
+    {
+        return $this->role?->slug === 'front_desk';
+    }
+
+    /** Check if the user holds the housekeeping role. */
+    public function isHousekeeping(): bool
+    {
+        return $this->role?->slug === 'housekeeping';
     }
 }

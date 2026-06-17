@@ -15,36 +15,25 @@ class ForgotPassword extends Component
 {
     public string $email = '';
 
-    /**
-     * Validation rules for the forgot password form.
-     *
-     * @return array<string, array<int, string>>
-     */
-    protected function rules(): array
-    {
-        return [
-            'email' => ['required', 'email'],
-        ];
-    }
+    public bool $sent = false;
 
     /**
-     * Send a password reset link to the provided email address.
+     * Send the password reset link to the given email address.
      */
     public function sendResetLink(): void
     {
-        $this->validate();
+        $this->validate([
+            'email' => ['required', 'email'],
+        ]);
 
         $status = Password::sendResetLink(['email' => $this->email]);
 
         if ($status === Password::RESET_LINK_SENT) {
-            $this->reset('email');
-
+            $this->sent = true;
             session()->flash('success', __($status));
-
-            return;
+        } else {
+            $this->addError('email', __($status));
         }
-
-        $this->addError('email', __($status));
     }
 
     public function render(): \Illuminate\Contracts\View\View

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -10,6 +11,19 @@ use Tests\TestCase;
 class AuthenticationFlowTest extends TestCase
 {
     use RefreshDatabase;
+
+    private Role $adminRole;
+    private Role $frontDeskRole;
+    private Role $housekeeperRole;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->adminRole = Role::create(['name' => 'Admin', 'slug' => 'admin']);
+        $this->frontDeskRole = Role::create(['name' => 'Front Desk', 'slug' => 'front_desk']);
+        $this->housekeeperRole = Role::create(['name' => 'Housekeeper', 'slug' => 'housekeeping']);
+    }
 
     /**
      * Test guest users are redirected to login.
@@ -22,36 +36,16 @@ class AuthenticationFlowTest extends TestCase
     }
 
     /**
-     * Test first-time user login redirects to PIN creation page.
+     * Test authenticated user can access the dashboard.
      */
-    public function test_first_time_login_without_pin_redirects_to_create_pin(): void
+    public function test_authenticated_user_can_access_dashboard(): void
     {
         $user = User::create([
-            'name' => 'First Time User',
+            'name' => 'Front Desk User',
             'phone' => '081234567890',
-            'email' => 'first@example.com',
+            'email' => 'frontdesk@example.com',
             'password' => Hash::make('password'),
-            'pin_hash' => null, // No PIN configured yet
-            'role' => 'driver',
-        ]);
-
-        $response = $this->actingAs($user)->get('/dashboard');
-
-        $response->assertRedirect('/create-pin');
-    }
-
-    /**
-     * Test returning user with PIN configured can access the dashboard.
-     */
-    public function test_user_with_pin_can_access_dashboard(): void
-    {
-        $user = User::create([
-            'name' => 'Returning User',
-            'phone' => '081234567890',
-            'email' => 'returning@example.com',
-            'password' => Hash::make('password'),
-            'pin_hash' => Hash::make('123456'), // PIN configured
-            'role' => 'driver',
+            'role_id' => $this->frontDeskRole->id,
         ]);
 
         $response = $this->actingAs($user)->get('/dashboard');
@@ -60,40 +54,38 @@ class AuthenticationFlowTest extends TestCase
     }
 
     /**
-     * Test warehouse role restriction on e-stamp uploads.
+     * Test housekeeping role is restricted from admin room config page.
      */
-    public function test_warehouse_user_can_access_estamp_upload(): void
+    public function test_housekeeper_cannot_access_room_config(): void
     {
         $user = User::create([
-            'name' => 'Warehouse User',
+            'name' => 'Housekeeper User',
             'phone' => '081234567890',
-            'email' => 'warehouse@example.com',
+            'email' => 'housekeeper@example.com',
             'password' => Hash::make('password'),
-            'pin_hash' => Hash::make('123456'),
-            'role' => 'warehouse',
+            'role_id' => $this->housekeeperRole->id,
         ]);
 
-        $response = $this->actingAs($user)->get('/settings/upload-stamp');
-
-        $response->assertStatus(200);
-    }
-
-    /**
-     * Test driver role is rejected from e-stamp uploads.
-     */
-    public function test_driver_user_cannot_access_estamp_upload(): void
-    {
-        $user = User::create([
-            'name' => 'Driver User',
-            'phone' => '081234567890',
-            'email' => 'driver@example.com',
-            'password' => Hash::make('password'),
-            'pin_hash' => Hash::make('123456'),
-            'role' => 'driver',
-        ]);
-
-        $response = $this->actingAs($user)->get('/settings/upload-stamp');
+        $response = $this->actingAs($user)->get('/rooms');
 
         $response->assertStatus(403);
+    }
+
+    /**
+     * Test admin role can access admin room config page.
+     */
+    public function test_admin_can_access_room_config(): void
+    {
+        $user = User::create([
+            'name' => 'Admin User',
+            'phone' => '081234567890',
+            'email' => 'admin@example.com',
+            'password' => Hash::make('password'),
+            'role_id' => $this->adminRole->id,
+        ]);
+
+        $response = $this->actingAs($user)->get('/rooms');
+
+        $response->assertStatus(200);
     }
 }

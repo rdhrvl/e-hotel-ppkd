@@ -47,15 +47,6 @@ class Login extends Component
 
         session()->regenerate();
 
-        /** @var \App\Models\User $user */
-        $user = auth()->user();
-
-        if (! $user->hasPinSet()) {
-            $this->redirect(route('pin.create'), navigate: true);
-
-            return;
-        }
-
         $this->redirect(route('dashboard'), navigate: true);
     }
 
