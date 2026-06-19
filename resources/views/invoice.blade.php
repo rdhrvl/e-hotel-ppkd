@@ -3,157 +3,224 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invoice #HMS-{{ str_pad((string)$booking->id, 5, '0', STR_PAD_LEFT) }}</title>
+    <title>Registration Card & Invoice #{{ $booking->booking_code }}</title>
     <style>
         body {
             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            color: #333;
+            color: #1e293b;
             margin: 0;
             padding: 30px;
-            font-size: 14px;
-            line-height: 1.6;
+            font-size: 12px;
+            line-height: 1.5;
+            background-color: #fff;
         }
 
         .invoice-box {
-            max-width: 800px;
+            max-width: 850px;
             margin: auto;
-            background: #fff;
+            border: 1px solid #cbd5e1;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
         }
 
-        .header {
+        /* Banner Header */
+        .banner {
+            background: linear-gradient(135deg, #4f46e5, #3730a3);
+            color: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 24px;
             display: flex;
             justify-content: space-between;
-            align-items: flex-start;
-            border-bottom: 2px solid #eee;
-            padding-bottom: 20px;
-            margin-bottom: 30px;
+            align-items: center;
         }
 
-        .brand h1 {
+        .banner-brand h1 {
             margin: 0;
-            font-size: 28px;
-            color: #6c5ce7;
-            font-weight: 700;
+            font-size: 24px;
+            font-weight: 800;
             letter-spacing: -0.5px;
         }
 
-        .brand p {
+        .banner-brand p {
             margin: 2px 0 0;
             font-size: 10px;
-            color: #777;
+            color: #c7d2fe;
             text-transform: uppercase;
             letter-spacing: 1.5px;
+            font-weight: 600;
         }
 
-        .invoice-details {
+        .banner-details {
             text-align: right;
         }
 
-        .invoice-details h2 {
-            margin: 0 0 5px;
-            font-size: 20px;
-            color: #111;
+        .banner-details h2 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 1px;
         }
 
-        .invoice-details p {
-            margin: 2px 0;
-            color: #555;
+        .banner-details p {
+            margin: 2px 0 0;
+            font-size: 11px;
+            color: #e0e7ff;
         }
 
-        .billing-grid {
+        /* Grid Layout for Sections */
+        .section-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 40px;
-            margin-bottom: 40px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
         }
 
-        .billing-col h3 {
-            margin: 0 0 10px;
-            font-size: 12px;
+        /* Section Container */
+        .section-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            background-color: #f8fafc;
+        }
+
+        .section-title {
+            font-size: 11px;
+            font-weight: 800;
+            color: #4f46e5;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            color: #777;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 5px;
+            border-b: 1px solid #e2e8f0;
+            margin: 0 0 10px;
+            padding-bottom: 4px;
         }
 
-        .billing-col p {
-            margin: 4px 0;
-            color: #333;
+        .section-title span {
+            color: #64748b;
+            font-weight: 500;
+            font-size: 10px;
+            text-transform: none;
+            margin-left: 4px;
+        }
+
+        .field-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            border-bottom: 1px dashed #f1f5f9;
+        }
+
+        .field-row:last-child {
+            border-bottom: none;
+        }
+
+        .field-label {
+            color: #64748b;
+            font-weight: 600;
+            font-size: 10px;
+            text-transform: uppercase;
+        }
+
+        .field-label span {
+            font-weight: 400;
+            text-transform: none;
+            color: #94a3b8;
+        }
+
+        .field-value {
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        /* Invoice Table */
+        .bill-title {
+            font-size: 12px;
+            font-weight: 800;
+            color: #1e293b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 6px;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 40px;
+            margin-bottom: 24px;
         }
 
         table th {
-            background-color: #fcfcfc;
-            border-bottom: 2px solid #eee;
-            color: #555;
-            font-weight: 600;
-            padding: 10px 12px;
+            background-color: #f1f5f9;
+            border-bottom: 2px solid #cbd5e1;
+            color: #475569;
+            font-weight: 700;
+            padding: 8px 12px;
             text-align: left;
-            font-size: 12px;
+            font-size: 10px;
             text-transform: uppercase;
         }
 
         table td {
-            padding: 12px;
-            border-bottom: 1px solid #eee;
-            color: #333;
+            padding: 10px 12px;
+            border-bottom: 1px solid #e2e8f0;
+            color: #334155;
         }
 
-        .summary-box {
+        .summary-wrapper {
             display: flex;
             justify-content: flex-end;
         }
 
         .summary-table {
-            width: 300px;
+            width: 320px;
             margin-bottom: 0;
         }
 
         .summary-table td {
-            padding: 6px 12px;
+            padding: 5px 12px;
             border-bottom: none;
         }
 
         .summary-table tr.total td {
-            font-size: 16px;
-            font-weight: 700;
-            color: #111;
-            border-top: 2px solid #eee;
-            padding-top: 10px;
+            font-size: 14px;
+            font-weight: 800;
+            color: #0f172a;
+            border-top: 2px solid #cbd5e1;
+            padding-top: 8px;
         }
 
+        /* Footer */
         .footer {
-            margin-top: 60px;
-            border-top: 1px solid #eee;
-            padding-top: 20px;
+            margin-top: 40px;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 16px;
             text-align: center;
-            color: #888;
-            font-size: 12px;
+            color: #64748b;
+            font-size: 10px;
         }
 
         .print-btn {
-            background-color: #6c5ce7;
-            color: #fff;
+            background: linear-gradient(135deg, #4f46e5, #3730a3);
+            color: #ffffff;
             border: none;
             padding: 10px 20px;
-            font-size: 14px;
-            font-weight: 600;
-            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 700;
+            border-radius: 6px;
             cursor: pointer;
             margin-bottom: 20px;
             display: inline-flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
+            transition: all 0.15s ease-in-out;
+            box-shadow: 0 4px 6px -1px rgb(79 70 229 / 0.2);
         }
 
         .print-btn:hover {
-            background-color: #5b4cc4;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 10px -1px rgb(79 70 229 / 0.3);
         }
 
         @media print {
@@ -163,78 +230,194 @@
             body {
                 padding: 0;
             }
+            .invoice-box {
+                border: none;
+                padding: 0;
+                box-shadow: none;
+            }
         }
     </style>
 </head>
 <body>
+    @php
+        // Parse structured fields from the room notes column (whichCreateBooking saves to)
+        $notes = $booking->room->notes ?? '';
+        
+        $arrivalTime = 'N/A';
+        if (preg_match('/Arrival Time:\s*([^\.]+)/i', $notes, $matches)) {
+            $arrivalTime = trim($matches[1]);
+        }
+        
+        $profession = 'N/A';
+        if (preg_match('/Profession:\s*([^\.]+)/i', $notes, $matches)) {
+            $profession = trim($matches[1]);
+        }
+        
+        $memberNo = 'N/A';
+        if (preg_match('/Member No:\s*([^\.]+)/i', $notes, $matches)) {
+            $memberNo = trim($matches[1]);
+        }
+        
+        $safetyBox = 'N/A';
+        if (preg_match('/Safety Box:\s*([^\.]+)/i', $notes, $matches)) {
+            $safetyBox = trim($matches[1]);
+        }
+
+        $additionalNotes = '';
+        if (preg_match('/Notes:\s*([^\.]+)/i', $notes, $matches)) {
+            $additionalNotes = trim($matches[1]);
+        }
+    @endphp
+
     <div class="invoice-box">
         <button class="print-btn" onclick="window.print()">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline-block;"><path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
-            Print Invoice
+            Print Invoice / Cetak Tagihan
         </button>
 
-        <div class="header">
-            <div class="brand">
-                <h1>HMS</h1>
-                <p>Hotel Management System</p>
+        {{-- Top Header banner --}}
+        <div class="banner">
+            <div class="banner-brand">
+                <h1>PPKD HOTEL</h1>
+                <p>Formulir Pendaftaran & Tagihan / Registration & Bill</p>
             </div>
-            <div class="invoice-details">
+            <div class="banner-details">
                 <h2>INVOICE</h2>
-                <p><strong>Invoice No:</strong> #HMS-{{ str_pad((string)$booking->id, 5, '0', STR_PAD_LEFT) }}</p>
+                <p><strong>Code:</strong> {{ $booking->booking_code }}</p>
                 <p><strong>Date:</strong> {{ now()->format('d M Y') }}</p>
             </div>
         </div>
 
-        <div class="billing-grid">
-            <div class="billing-col">
-                <h3>Hotel Details</h3>
-                <p><strong>Grand Horizon Hotel</strong></p>
-                <p>Jl. Premium Boulevard No. 88</p>
-                <p>Jakarta, Indonesia</p>
-                <p>Phone: +62 21-555-0199</p>
+        {{-- Sections Grid --}}
+        <div class="section-grid">
+            
+            {{-- Room Details Section --}}
+            <div class="section-card">
+                <h3 class="section-title">I. Informasi Kamar <span>/ Room Details</span></h3>
+                <div class="field-row">
+                    <span class="field-label">Room No.</span>
+                    <span class="field-value">{{ $booking->room->room_number }}</span>
+                </div>
+                <div class="field-row">
+                    <span class="field-label">Room Type</span>
+                    <span class="field-value">{{ $booking->room->roomType->name }}</span>
+                </div>
+                <div class="field-row">
+                    <span class="field-label">No. of Person</span>
+                    <span class="field-value">{{ $booking->number_of_guests }} Pax</span>
+                </div>
+                <div class="field-row">
+                    <span class="field-label">Check-Out Time</span>
+                    <span class="field-value">12.00 PM</span>
+                </div>
+                @if($additionalNotes)
+                    <div class="field-row">
+                        <span class="field-label">Notes</span>
+                        <span class="field-value" style="font-size: 10px; max-width: 180px; text-align: right;">{{ $additionalNotes }}</span>
+                    </div>
+                @endif
             </div>
-            <div class="billing-col">
-                <h3>Guest Details</h3>
-                <p><strong>Name:</strong> {{ $booking->guest_name }}</p>
-                <p><strong>ID Document:</strong> {{ $booking->guest_id }}</p>
-                <p><strong>Stay:</strong> {{ $booking->check_in_date->format('d M Y') }} to {{ $booking->check_out_date->format('d M Y') }} ({{ $booking->nights }} Nights)</p>
-                <p><strong>Room Assigned:</strong> Room {{ $booking->room->room_number }} ({{ $booking->room->roomType->name }})</p>
+
+            {{-- Guest Info Section --}}
+            <div class="section-card">
+                <h3 class="section-title">II. Data Tamu <span>/ Guest Information</span></h3>
+                <div class="field-row">
+                    <span class="field-label">Name <span>/ Nama</span></span>
+                    <span class="field-value">{{ $booking->guest->name }}</span>
+                </div>
+                <div class="field-row">
+                    <span class="field-label">Profession <span>/ Pekerjaan</span></span>
+                    <span class="field-value">{{ $profession }}</span>
+                </div>
+                <div class="field-row">
+                    <span class="field-label">Nationality <span>/ Kebangsaan</span></span>
+                    <span class="field-value">Indonesian</span>
+                </div>
+                <div class="field-row">
+                    <span class="field-label">ID No. <span>/ KTP/Passport</span></span>
+                    <span class="field-value">{{ $booking->guest->identity_number }}</span>
+                </div>
             </div>
+
+            {{-- Contact Details Section --}}
+            <div class="section-card">
+                <h3 class="section-title">III. Kontak <span>/ Contact Details</span></h3>
+                <div class="field-row">
+                    <span class="field-label">Address <span>/ Alamat</span></span>
+                    <span class="field-value" style="font-size: 10px; max-width: 180px; text-align: right;">{{ $booking->guest->address ?: 'N/A' }}</span>
+                </div>
+                <div class="field-row">
+                    <span class="field-label">Phone <span>/ Telp</span></span>
+                    <span class="field-value">{{ $booking->guest->phone ?: 'N/A' }}</span>
+                </div>
+                <div class="field-row">
+                    <span class="field-label">Email</span>
+                    <span class="field-value">{{ $booking->guest->email ?: 'N/A' }}</span>
+                </div>
+                <div class="field-row">
+                    <span class="field-label">Member No.</span>
+                    <span class="field-value">{{ $memberNo }}</span>
+                </div>
+            </div>
+
+            {{-- Stay & Box Section --}}
+            <div class="section-card">
+                <h3 class="section-title">IV. Menginap & Safe Box <span>/ Stay & Safe Box</span></h3>
+                <div class="field-row">
+                    <span class="field-label">Arrival Date</span>
+                    <span class="field-value">{{ $booking->check_in_date->format('d M Y') }}</span>
+                </div>
+                <div class="field-row">
+                    <span class="field-label">Departure Date</span>
+                    <span class="field-value">{{ $booking->check_out_date->format('d M Y') }}</span>
+                </div>
+                <div class="field-row">
+                    <span class="field-label">Arrival Time</span>
+                    <span class="field-value">{{ $arrivalTime }}</span>
+                </div>
+                <div class="field-row">
+                    <span class="field-label">Safety Box No.</span>
+                    <span class="field-value">{{ $safetyBox }}</span>
+                </div>
+            </div>
+
         </div>
 
+        {{-- Billing breakdown list --}}
+        <h3 class="bill-title">Rincian Transaksi / Billing Details</h3>
         <table>
             <thead>
                 <tr>
-                    <th>Item Description</th>
-                    <th>Quantity/Nights</th>
-                    <th>Unit Rate (Rp)</th>
-                    <th style="text-align: right;">Total (Rp)</th>
+                    <th>Description <span>/ Rincian</span></th>
+                    <th>Nights/Qty <span>/ Jumlah</span></th>
+                    <th>Rate <span>/ Tarif (Rp)</span></th>
+                    <th style="text-align: right;">Total <span>/ Jumlah (Rp)</span></th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
-                    <td>Room Charge — Room {{ $booking->room->room_number }} ({{ $booking->room->roomType->name }})</td>
+                    <td>Room Charge - Room {{ $booking->room->room_number }} ({{ $booking->room->roomType->name }})</td>
                     <td>{{ $booking->nights }}</td>
                     <td>Rp {{ number_format($booking->room->effective_price) }}</td>
-                    <td style="text-align: right; font-weight: 500;">Rp {{ number_format($booking->guestBill->total_room_charges) }}</td>
+                    <td style="text-align: right; font-weight: 700;">Rp {{ number_format($booking->guestBill->total_room_charges) }}</td>
                 </tr>
                 @foreach($booking->bookingItems as $item)
                     <tr>
                         <td>
                             {{ $item->service->name }}
                             @if($item->notes)
-                                <div style="font-size: 11px; color: #666; margin-top: 2px;">{{ $item->notes }}</div>
+                                <div style="font-size: 10px; color: #64748b; margin-top: 2px;">{{ $item->notes }}</div>
                             @endif
                         </td>
                         <td>{{ $item->quantity }}</td>
                         <td>Rp {{ number_format((float)$item->price) }}</td>
-                        <td style="text-align: right; font-weight: 500;">Rp {{ number_format($item->subtotal) }}</td>
+                        <td style="text-align: right; font-weight: 700;">Rp {{ number_format($item->subtotal) }}</td>
                     </tr>
                 @endforeach
             </tbody>
         </table>
 
-        <div class="summary-box">
+        {{-- Totals Summary --}}
+        <div class="summary-wrapper">
             @php
                 $bill = $booking->guestBill;
                 $grandTotal = $bill->total_room_charges + $bill->total_extra_charges;
@@ -251,28 +434,29 @@
                 </tr>
                 <tr>
                     <td><strong>Grand Total:</strong></td>
-                    <td style="text-align: right; font-weight: 500;">Rp {{ number_format($grandTotal) }}</td>
+                    <td style="text-align: right; font-weight: 700;">Rp {{ number_format($grandTotal) }}</td>
                 </tr>
                 <tr>
-                    <td style="color: #27ae60;"><strong>Security Deposit:</strong></td>
-                    <td style="text-align: right; color: #27ae60;">- Rp {{ number_format($bill->deposit_amount) }}</td>
+                    <td style="color: #10b981;"><strong>Security Deposit:</strong></td>
+                    <td style="text-align: right; color: #10b981;">- Rp {{ number_format($bill->deposit_amount) }}</td>
                 </tr>
                 @if($bill->paid_amount > 0)
                     <tr>
-                        <td style="color: #27ae60;"><strong>Amount Paid:</strong></td>
-                        <td style="text-align: right; color: #27ae60;">- Rp {{ number_format($bill->paid_amount) }}</td>
+                        <td style="color: #10b981;"><strong>Amount Paid:</strong></td>
+                        <td style="text-align: right; color: #10b981;">- Rp {{ number_format($bill->paid_amount) }}</td>
                     </tr>
                 @endif
                 <tr class="total">
                     <td><strong>Balance Due:</strong></td>
-                    <td style="text-align: right;">Rp {{ number_format(max(0, $balance)) }}</td>
+                    <td style="text-align: right; color: #ef4444;">Rp {{ number_format(max(0, $balance)) }}</td>
                 </tr>
             </table>
         </div>
 
+        {{-- Invoice Footer --}}
         <div class="footer">
-            <p>Thank you for choosing Grand Horizon Hotel. We hope you enjoyed your stay!</p>
-            <p style="font-size: 10px; margin-top: 10px;">This is a computer-generated invoice and requires no physical signature.</p>
+            <p>Terima kasih atas kunjungan Anda di PPKD Hotel! / Thank you for choosing PPKD Hotel!</p>
+            <p style="font-size: 9px; margin-top: 8px; color: #94a3b8;">This is a computer-generated invoice and requires no physical signature.</p>
         </div>
     </div>
 </body>

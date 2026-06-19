@@ -1,624 +1,271 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="h-full">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ $title ?? 'Dashboard' }} — E-DN</title>
+    <title>{{ $title ?? 'Dashboard' }} - HMS Admin</title>
 
-    {{-- Google Fonts: Inter --}}
+    <script>
+        if (localStorage.getItem('darkMode') === 'true' || 
+            (!('darkMode' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+
+    {{-- Google Fonts --}}
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
 
     <style>
-        :root {
-            --bg-primary: #0f0f1a;
-            --bg-card: #1a1a2e;
-            --bg-input: #12122a;
-            --border-color: #2d2d44;
-            --accent-primary: #6c5ce7;
-            --accent-success: #00b894;
-            --accent-warning: #fdcb6e;
-            --accent-danger: #e17055;
-            --text-heading: #ffffff;
-            --text-body: #a0a0b8;
-            --sidebar-width: 260px;
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-primary);
-            color: var(--text-body);
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
-
-        /* ── Sidebar ── */
-        .sidebar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: var(--sidebar-width);
-            height: 100vh;
-            background: var(--bg-card);
-            border-right: 1px solid var(--border-color);
-            display: flex;
-            flex-direction: column;
-            z-index: 100;
-            transition: transform 0.3s cubic-bezier(.4,0,.2,1);
-        }
-
-        .sidebar-brand {
-            padding: 28px 24px 20px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .sidebar-brand h1 {
-            font-size: 1.75rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, #6c5ce7, #a29bfe, #fd79a8);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            letter-spacing: -0.5px;
-        }
-
-        .sidebar-brand span {
-            display: block;
-            font-size: 0.7rem;
-            color: var(--text-body);
-            margin-top: 2px;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            -webkit-text-fill-color: var(--text-body);
-        }
-
-        .sidebar-nav {
-            flex: 1;
-            padding: 16px 12px;
-            overflow-y: auto;
-        }
-
-        .sidebar-nav .nav-label {
-            font-size: 0.65rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1.2px;
-            color: #5a5a7a;
-            padding: 12px 12px 8px;
-        }
-
-        .nav-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px 16px;
-            border-radius: 10px;
-            color: var(--text-body);
-            text-decoration: none;
-            font-size: 0.875rem;
-            font-weight: 500;
-            transition: all 0.2s ease;
-            margin-bottom: 2px;
-        }
-
-        .nav-item:hover {
-            background: rgba(108, 92, 231, 0.08);
-            color: var(--text-heading);
-        }
-
-        .nav-item.active {
-            background: linear-gradient(135deg, rgba(108,92,231,0.15), rgba(108,92,231,0.05));
-            color: var(--accent-primary);
-            box-shadow: inset 3px 0 0 var(--accent-primary);
-        }
-
-        .nav-item .nav-icon {
-            width: 20px;
-            height: 20px;
-            flex-shrink: 0;
-            opacity: 0.7;
-        }
-
-        .nav-item.active .nav-icon { opacity: 1; }
-
-        .sidebar-user {
-            padding: 16px 16px 20px;
-            border-top: 1px solid var(--border-color);
-        }
-
-        .sidebar-user-info {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 12px;
-        }
-
-        .sidebar-user-avatar {
-            width: 38px;
-            height: 38px;
-            border-radius: 10px;
-            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #fff;
-            font-weight: 700;
-            font-size: 0.875rem;
-            flex-shrink: 0;
-        }
-
-        .sidebar-user-name {
-            font-size: 0.85rem;
-            color: var(--text-heading);
-            font-weight: 600;
-        }
-
-        .sidebar-user-role {
-            display: inline-block;
-            margin-top: 2px;
-            font-size: 0.65rem;
-            padding: 2px 8px;
-            border-radius: 20px;
-            background: rgba(108,92,231,0.15);
-            color: var(--accent-primary);
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .sidebar-user-role.superadmin {
-            background: rgba(253,203,110,0.15);
-            color: #fdcb6e;
-        }
-
-        .btn-logout {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            width: 100%;
-            padding: 10px;
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            background: transparent;
-            color: var(--text-body);
-            font-size: 0.8rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-family: 'Inter', sans-serif;
-        }
-
-        .btn-logout:hover {
-            border-color: var(--accent-danger);
-            color: var(--accent-danger);
-            background: rgba(225,112,85,0.08);
-        }
-
-        /* ── Mobile Top Bar ── */
-        .mobile-topbar {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 60px;
-            background: var(--bg-card);
-            border-bottom: 1px solid var(--border-color);
-            padding: 0 16px;
-            align-items: center;
-            justify-content: space-between;
-            z-index: 90;
-        }
-
-        .mobile-topbar button {
-            background: none;
-            border: none;
-            color: var(--text-heading);
-            cursor: pointer;
-            padding: 8px;
-        }
-
-        .mobile-topbar .brand {
-            font-size: 1.25rem;
-            font-weight: 700;
-            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .notif-bell {
-            position: relative;
-        }
-
-        .notif-bell .badge {
-            position: absolute;
-            top: 2px;
-            right: 2px;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--accent-danger);
-        }
-
-        /* ── Sidebar Overlay ── */
-        .sidebar-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.6);
-            backdrop-filter: blur(4px);
-            z-index: 99;
-        }
-
-        /* ── Main Content ── */
-        .main-content {
-            margin-left: var(--sidebar-width);
-            min-height: 100vh;
-            transition: margin 0.3s ease;
-        }
-
-        .content-topbar {
-            position: sticky;
-            top: 0;
-            background: rgba(15,15,26,0.85);
-            backdrop-filter: blur(12px);
-            border-bottom: 1px solid var(--border-color);
-            padding: 20px 32px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            z-index: 50;
-        }
-
-        .content-topbar h2 {
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: var(--text-heading);
-        }
-
-        .breadcrumb {
-            font-size: 0.75rem;
-            color: var(--text-body);
-            margin-top: 4px;
-        }
-
-        .breadcrumb a {
-            color: var(--accent-primary);
-            text-decoration: none;
-        }
-
-        .topbar-right {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .notif-count-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 14px;
-            background: rgba(108,92,231,0.12);
-            border: 1px solid rgba(108,92,231,0.2);
-            border-radius: 20px;
-            color: var(--accent-primary);
-            font-size: 0.78rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            text-decoration: none;
-        }
-
-        .notif-count-badge:hover {
-            background: rgba(108,92,231,0.2);
-        }
-
-        .content-body {
-            padding: 28px 32px 100px;
-        }
-
-        /* ── Mobile Bottom Nav ── */
-        .mobile-bottom-nav {
-            display: none;
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 68px;
-            background: var(--bg-card);
-            border-top: 1px solid var(--border-color);
-            z-index: 90;
-            padding: 0 8px;
-            align-items: center;
-            justify-content: space-around;
-        }
-
-        .bottom-nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-            text-decoration: none;
-            color: var(--text-body);
-            font-size: 0.6rem;
-            font-weight: 500;
-            padding: 8px 12px;
-            border-radius: 12px;
-            transition: all 0.2s ease;
-        }
-
-        .bottom-nav-item.active {
-            color: var(--accent-primary);
-            background: rgba(108,92,231,0.1);
-        }
-
-        .bottom-nav-item svg {
-            width: 22px;
-            height: 22px;
-        }
-
-        /* ── Toast ── */
-        .toast-container {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .toast {
-            padding: 14px 20px;
-            border-radius: 12px;
-            font-size: 0.85rem;
-            font-weight: 500;
-            color: #fff;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-            animation: toastSlideIn 0.4s cubic-bezier(.4,0,.2,1);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .toast-success {
-            background: linear-gradient(135deg, #00b894, #00a381);
-            border: 1px solid rgba(0,184,148,0.3);
-        }
-
-        .toast-error {
-            background: linear-gradient(135deg, #e17055, #d63031);
-            border: 1px solid rgba(225,112,85,0.3);
-        }
-
-        @keyframes toastSlideIn {
-            from { transform: translateX(100px); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-
-        /* ── Responsive ── */
-        @media (max-width: 768px) {
-            .sidebar {
-                transform: translateX(-100%);
-            }
-
-            .sidebar.open {
-                transform: translateX(0);
-            }
-
-            .sidebar-overlay.open {
-                display: block;
-            }
-
-            .mobile-topbar {
-                display: flex;
-            }
-
-            .main-content {
-                margin-left: 0;
-                padding-top: 60px;
-            }
-
-            .content-topbar {
-                display: none;
-            }
-
-            .content-body {
-                padding: 20px 16px 100px;
-            }
-
-            .mobile-bottom-nav {
-                display: flex;
-            }
+            font-family: 'Outfit', sans-serif;
         }
     </style>
 </head>
-<body x-data="{ sidebarOpen: false }">
+<body class="h-full text-[var(--text-secondary)] antialiased bg-[var(--bg-primary)]" x-data="{ sidebarOpen: false, darkMode: localStorage.getItem('darkMode') === 'true' }">
 
-    {{-- ── Flash Toasts ── --}}
-    <div class="toast-container">
-        @if (session('success'))
-            <div class="toast toast-success"
-                 x-data="{ show: true }"
-                 x-show="show"
-                 x-init="setTimeout(() => show = false, 4000)"
-                 x-transition:leave.duration.300ms>
-                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
-                {{ session('success') }}
-            </div>
-        @endif
-
-        @if (session('error'))
-            <div class="toast toast-error"
-                 x-data="{ show: true }"
-                 x-show="show"
-                 x-init="setTimeout(() => show = false, 4000)"
-                 x-transition:leave.duration.300ms>
-                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
-                {{ session('error') }}
-            </div>
-        @endif
-    </div>
-
-    {{-- ── Mobile Top Bar ── --}}
-    <header class="mobile-topbar">
-        <button @click="sidebarOpen = true" aria-label="Open menu">
-            <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
-        </button>
-        <span class="brand">HMS</span>
-        <div style="width: 40px;"></div> {{-- Spacer to balance open menu button --}}
-    </header>
-
-    {{-- ── Sidebar Overlay ── --}}
-    <div class="sidebar-overlay"
-         :class="{ 'open': sidebarOpen }"
-         @click="sidebarOpen = false"></div>
-
-    {{-- ── Sidebar ── --}}
-    <aside class="sidebar" :class="{ 'open': sidebarOpen }">
-        <div class="sidebar-brand">
-            <h1>HMS</h1>
-            <span>Hotel Management</span>
-        </div>
-
-        <nav class="sidebar-nav">
-            <div class="nav-label">Main Menu</div>
-
-            <a href="{{ route('dashboard') }}"
-               class="nav-item {{ request()->routeIs('dashboard') ? 'active' : '' }}"
-               @click="sidebarOpen = false">
-                <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
-                Room Board
-            </a>
-
-            @if(auth()->user()->isAdmin() || auth()->user()->isFrontDesk())
-                <a href="{{ route('bookings') }}"
-                   class="nav-item {{ request()->routeIs('bookings') ? 'active' : '' }}"
-                   @click="sidebarOpen = false">
-                    <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                    Registry
+    {{-- Layout wrapper --}}
+    <div class="flex h-screen overflow-hidden bg-[var(--bg-primary)]">
+        
+        {{-- Sidebar --}}
+        <aside class="fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-[var(--border-color)] bg-[var(--bg-card)] transition-transform duration-300 ease-in-out lg:static lg:translate-x-0"
+               :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'">
+            
+            {{-- Brand Logo --}}
+            <div class="flex h-20 items-center justify-between px-5 border-b border-[var(--border-color)]">
+                <a href="{{ route('dashboard') }}" class="flex items-center gap-3 group">
+                    <img src="/img/logo-ppkd.png" alt="PPKD Logo" class="h-[40px] w-auto">
+                    <div>
+                        <h1 class="text-[18px] font-bold tracking-tight text-[var(--text-primary)]">PPKD Hotel</h1>
+                    </div>
                 </a>
-
-                <a href="{{ route('guest-bills') }}"
-                   class="nav-item {{ request()->routeIs('guest-bills') ? 'active' : '' }}"
-                   @click="sidebarOpen = false">
-                    <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    Billing
-                </a>
-            @endif
-
-            @if(auth()->user()->isAdmin())
-                <div class="nav-label" style="margin-top: 12px;">Admin</div>
-
-                <a href="{{ route('rooms') }}"
-                   class="nav-item {{ request()->routeIs('rooms') ? 'active' : '' }}"
-                   @click="sidebarOpen = false">
-                    <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
-                    Room Config
-                </a>
-
-                <a href="{{ route('admin.users') }}"
-                   class="nav-item {{ request()->routeIs('admin.users') ? 'active' : '' }}"
-                   @click="sidebarOpen = false">
-                    <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-                    User Management
-                </a>
-
-                <a href="{{ route('admin.services') }}"
-                   class="nav-item {{ request()->routeIs('admin.services') ? 'active' : '' }}"
-                   @click="sidebarOpen = false">
-                    <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>
-                    Services
-                </a>
-            @endif
-        </nav>
-
-        {{-- ── User Info ── --}}
-        <div class="sidebar-user">
-            <div class="sidebar-user-info">
-                <div class="sidebar-user-avatar">
-                    {{ strtoupper(substr(auth()->user()->name, 0, 2)) }}
-                </div>
-                <div>
-                    <div class="sidebar-user-name">{{ auth()->user()->name }}</div>
-                    <span class="sidebar-user-role {{ auth()->user()->isSuperAdmin() ? 'superadmin' : '' }}">{{ auth()->user()->role ? auth()->user()->role->name : 'Staff' }}</span>
-                </div>
-            </div>
-            <form method="POST" action="{{ route('logout') }}">
-                @csrf
-                <button type="submit" class="btn-logout">
-                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
-                    Sign Out
+                <button @click="sidebarOpen = false" class="border border-[var(--border-color)] bg-[var(--bg-card)] p-1.5 text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] rounded-md lg:hidden transition-colors">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
                 </button>
-            </form>
-        </div>
-    </aside>
-
-    {{-- ── Main Content ── --}}
-    <main class="main-content">
-        <div class="content-topbar">
-            <div>
-                <h2>{{ $title ?? 'Dashboard' }}</h2>
-                @isset($breadcrumb)
-                    <div class="breadcrumb">{!! $breadcrumb !!}</div>
-                @endisset
             </div>
-            <div class="topbar-right">
-                {{-- Plain placeholder topbar right --}}
+
+            {{-- Sidebar Nav --}}
+            <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-6">
+                <div>
+                    <span class="px-3 text-xs font-bold uppercase tracking-widest text-[var(--text-muted)]">Overview</span>
+                    <div class="mt-2 space-y-1">
+                        {{-- 1. Dashboard --}}
+                        <a href="{{ route('dashboard') }}" 
+                           class="flex items-center gap-3 rounded px-3 py-2 text-sm font-medium transition-colors duration-150 {{ request()->routeIs('dashboard') ? 'bg-[var(--bg-secondary)] text-[var(--text-primary)] border-l-2 border-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]/55 hover:text-[var(--text-primary)]' }}">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+                            </svg>
+                            Dashboard
+                        </a>
+
+                        {{-- Room Availability --}}
+                        <a href="{{ route('room-availability') }}" 
+                           class="flex items-center gap-3 rounded px-3 py-2 text-sm font-medium transition-colors duration-150 {{ request()->routeIs('room-availability') ? 'bg-[var(--bg-secondary)] text-[var(--text-primary)] border-l-2 border-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]/55 hover:text-[var(--text-primary)]' }}">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
+                            </svg>
+                            Room Availability
+                        </a>
+                    </div>
+                </div>
+
+                <div>
+                    <span class="px-3 text-xs font-bold uppercase tracking-widest text-[var(--text-muted)]">Manage</span>
+                    <div class="mt-2 space-y-1">
+                        {{-- Rooms --}}
+                        @if(auth()->user()->isAdmin())
+                            <a href="{{ route('rooms') }}" 
+                               class="flex items-center gap-3 rounded px-3 py-2 text-sm font-medium transition-colors duration-150 {{ request()->routeIs('rooms') ? 'bg-[var(--bg-secondary)] text-[var(--text-primary)] border-l-2 border-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]/55 hover:text-[var(--text-primary)]' }}">
+                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 21h8.25M9.75 17.25h4.5M10.5 21V12a1.5 1.5 0 011.5-1.5h0a1.5 1.5 0 011.5 1.5v9m-7.5-6h12m-13.5-3.75V5.625c0-.621.504-1.125 1.125-1.125h14.75c.621 0 1.125.504 1.125 1.125V11.25" />
+                                </svg>
+                                Rooms
+                            </a>
+                        @endif
+
+                        {{-- Bookings --}}
+                        @if(auth()->user()->isAdmin() || auth()->user()->isFrontDesk())
+                            <a href="{{ route('bookings') }}" 
+                               class="flex items-center gap-3 rounded px-3 py-2 text-sm font-medium transition-colors duration-150 {{ request()->routeIs('bookings') ? 'bg-[var(--bg-secondary)] text-[var(--text-primary)] border-l-2 border-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]/55 hover:text-[var(--text-primary)]' }}">
+                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                                </svg>
+                                Bookings
+                            </a>
+                        @endif
+
+                        {{-- Guests --}}
+                        <a href="{{ route('guests') }}" 
+                           class="flex items-center gap-3 rounded px-3 py-2 text-sm font-medium transition-colors duration-150 {{ request()->routeIs('guests') ? 'bg-[var(--bg-secondary)] text-[var(--text-primary)] border-l-2 border-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]/55 hover:text-[var(--text-primary)]' }}">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.109A11.386 11.386 0 0110.089 20M3 11.625a3 3 0 116 0 3 3 0 01-6 0z" />
+                            </svg>
+                            Guests
+                        </a>
+
+                        {{-- Housekeeping --}}
+                        <a href="{{ route('housekeeping') }}" 
+                           class="flex items-center gap-3 rounded px-3 py-2 text-sm font-medium transition-colors duration-150 {{ request()->routeIs('housekeeping') ? 'bg-[var(--bg-secondary)] text-[var(--text-primary)] border-l-2 border-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]/55 hover:text-[var(--text-primary)]' }}">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766" />
+                            </svg>
+                            Housekeeping
+                        </a>
+
+                        {{-- Payments --}}
+                        <a href="{{ route('payments') }}" 
+                           class="flex items-center gap-3 rounded px-3 py-2 text-sm font-medium transition-colors duration-150 {{ request()->routeIs('payments') ? 'bg-[var(--bg-secondary)] text-[var(--text-primary)] border-l-2 border-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]/55 hover:text-[var(--text-primary)]' }}">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0c1.172-.879 1.172-2.303 0-3.182" />
+                            </svg>
+                            Payments
+                        </a>
+
+                        {{-- Food & Beverage --}}
+                        @if(auth()->user()->isFnb())
+                            <a href="{{ route('fnb') }}" 
+                               class="flex items-center gap-3 rounded px-3 py-2 text-sm font-medium transition-colors duration-150 {{ request()->routeIs('fnb') ? 'bg-[var(--bg-secondary)] text-[var(--text-primary)] border-l-2 border-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]/55 hover:text-[var(--text-primary)]' }}">
+                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                                </svg>
+                                Food & Beverage
+                            </a>
+                        @endif
+                    </div>
+                </div>
+
+                <div>
+                    <span class="px-3 text-xs font-bold uppercase tracking-widest text-[var(--text-muted)]">System</span>
+                    <div class="mt-2 space-y-1">
+                        {{-- Settings --}}
+                        <a href="{{ route('settings') }}" 
+                           class="flex items-center gap-3 rounded px-3 py-2 text-sm font-medium transition-colors duration-150 {{ request()->routeIs('settings') ? 'bg-[var(--bg-secondary)] text-[var(--text-primary)] border-l-2 border-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]/55 hover:text-[var(--text-primary)]' }}">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.43l-1.003.828c-.293.241-.438.613-.43.992a7.723 7.723 0 010 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.43l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 010-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28z" />
+                            </svg>
+                            Settings
+                        </a>
+
+                        {{-- Audit Trails --}}
+                        @if(auth()->user()->isAdmin())
+                            <a href="{{ route('audit-logs') }}" 
+                               class="flex items-center gap-3 rounded px-3 py-2 text-sm font-medium transition-colors duration-150 {{ request()->routeIs('audit-logs') ? 'bg-[var(--bg-secondary)] text-[var(--text-primary)] border-l-2 border-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]/55 hover:text-[var(--text-primary)]' }}">
+                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                                </svg>
+                                Audit Trails
+                            </a>
+                        @endif
+                    </div>
+                </div>
+            </nav>
+
+            {{-- User panel --}}
+            <div class="px-4 py-4 border-t border-[var(--border-color)] bg-[var(--bg-card)]">
+                <div class="flex items-center justify-between gap-3 w-full">
+                    <div class="flex items-center gap-3 overflow-hidden">
+                        <div class="w-8 h-8 border border-[var(--border-color)] bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-primary)] text-xs font-bold uppercase flex-shrink-0 rounded-full">
+                            {{ substr(auth()->user()->name, 0, 2) }}
+                        </div>
+                        <div class="overflow-hidden">
+                            <h4 class="truncate text-sm font-bold text-[var(--text-primary)] leading-tight">{{ auth()->user()->name }}</h4>
+                            <span class="text-xs text-[var(--text-secondary)] font-medium leading-none block mt-0.5">{{ auth()->user()->role ? auth()->user()->role->name : 'Staff' }}</span>
+                        </div>
+                    </div>
+                    <form method="POST" action="{{ route('logout') }}" class="flex-shrink-0">
+                        @csrf
+                        <button type="submit" class="border border-[var(--border-color)] text-[var(--text-primary)] bg-[var(--bg-card)] hover:bg-[var(--bg-secondary)] hover:text-red-600 transition-colors p-1.5 rounded-md" title="Logout" aria-label="Logout">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+                            </svg>
+                        </button>
+                    </form>
+                </div>
             </div>
-        </div>
+        </aside>
 
-        <div class="content-body">
-            {{ $slot }}
-        </div>
-    </main>
+        {{-- Main Content Wrap --}}
+        <div class="flex flex-1 flex-col overflow-hidden bg-[var(--bg-primary)]">
 
-    {{-- ── Mobile Bottom Nav ── --}}
-    <nav class="mobile-bottom-nav">
-        <a href="{{ route('dashboard') }}"
-           class="bottom-nav-item {{ request()->routeIs('dashboard') ? 'active' : '' }}">
-            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-            Rooms
-        </a>
-        @if(auth()->user()->isAdmin() || auth()->user()->isFrontDesk())
-            <a href="{{ route('bookings') }}"
-               class="bottom-nav-item {{ request()->routeIs('bookings') ? 'active' : '' }}">
-                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                Bookings
-            </a>
-            <a href="{{ route('guest-bills') }}"
-               class="bottom-nav-item {{ request()->routeIs('guest-bills') ? 'active' : '' }}">
-                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                Bills
-            </a>
-        @endif
-        @if(auth()->user()->isAdmin())
-            <a href="{{ route('rooms') }}"
-               class="bottom-nav-item {{ request()->routeIs('rooms') ? 'active' : '' }}">
-                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
-                Config
-            </a>
-            <a href="{{ route('admin.users') }}"
-               class="bottom-nav-item {{ request()->routeIs('admin.users') ? 'active' : '' }}">
-                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-                Users
-            </a>
-            <a href="{{ route('admin.services') }}"
-               class="bottom-nav-item {{ request()->routeIs('admin.services') ? 'active' : '' }}">
-                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>
-                Services
-            </a>
-        @endif
-    </nav>
+            {{-- Top Navbar --}}
+            <header class="flex h-20 items-center justify-between border-b border-[var(--border-color)] bg-[var(--bg-card)] px-6 z-30 shadow-sm">
+                
+                {{-- Left: Toggle & Page Title --}}
+                <div class="flex items-center gap-4">
+                    <button @click="sidebarOpen = true" class="border border-[var(--border-color)] bg-[var(--bg-card)] p-1.5 text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] rounded-md lg:hidden transition-colors">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                        </svg>
+                    </button>
+                    <div>
+                        <h2 class="text-lg font-bold tracking-tight text-[var(--text-primary)]">{{ $title ?? 'Dashboard' }}</h2>
+                        @isset($breadcrumb)
+                            <div class="text-xs text-[var(--text-secondary)] font-medium mt-0.5">{!! $breadcrumb !!}</div>
+                        @endisset
+                    </div>
+                </div>
+
+                {{-- Right: Branch Switcher & Actions --}}
+                <div class="flex items-center gap-4">
+                    @livewire('dashboard.branch-selector')
+
+                    {{-- Invert Mode Toggle Button --}}
+                    <button @click="darkMode = !darkMode; localStorage.setItem('darkMode', darkMode); document.documentElement.classList.toggle('dark', darkMode)" 
+                            class="relative border border-[var(--border-color)] p-2 text-[var(--text-primary)] bg-[var(--bg-card)] hover:bg-[var(--bg-secondary)] transition-all duration-100 cursor-pointer rounded-md shadow-sm"
+                            title="Toggle Theme"
+                            aria-label="Toggle Theme">
+                        <svg x-show="darkMode" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="display: none;" :style="{ display: darkMode ? 'block' : 'none' }">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m0 13.5V21M4.929 4.929l1.591 1.591m10.97 10.97l1.591 1.591M3 12h2.25m13.5 0H21m-2.23-7.071l-1.591 1.591M6.52 17.48l-1.591 1.591M12 6.75a5.25 5.25 0 100 10.5 5.25 5.25 0 000-10.5z" />
+                        </svg>
+                        <svg x-show="!darkMode" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="display: none;" :style="{ display: !darkMode ? 'block' : 'none' }">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
+                        </svg>
+                    </button>
+
+                    {{-- Notifications bell stub --}}
+                    <div class="relative border border-[var(--border-color)] p-2 text-[var(--text-primary)] bg-[var(--bg-card)] hover:bg-[var(--bg-secondary)] transition-all duration-100 cursor-pointer rounded-md shadow-sm">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                        </svg>
+                    </div>
+                </div>
+            </header>
+
+            {{-- Main Scroll Content --}}
+            <main class="flex-1 overflow-y-auto bg-[var(--bg-primary)] p-6 lg:p-8">
+                
+                {{-- Flash Message notifications --}}
+                @if (session('success'))
+                    <div class="mb-6 flex items-center gap-3 rounded border border-[#edf3ec] bg-[var(--success-bg)] px-4 py-3.5 text-sm font-semibold text-[var(--success)]">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        {{ session('success') }}
+                    </div>
+                @endif
+
+                @if (session('error'))
+                    <div class="mb-6 flex items-center gap-3 rounded border border-[#fdebec] bg-[var(--danger-bg)] px-4 py-3.5 text-sm font-semibold text-[var(--danger)]">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        {{ session('error') }}
+                    </div>
+                @endif
+
+                {{ $slot }}
+            </main>
+        </div>
+    </div>
 
     @livewireScripts
 </body>

@@ -10,6 +10,14 @@ use App\Livewire\Dashboard\GuestBills;
 use App\Livewire\Dashboard\Rooms;
 use App\Livewire\Dashboard\Users;
 use App\Livewire\Dashboard\Services;
+use App\Livewire\Dashboard\Housekeeping;
+use App\Livewire\Dashboard\AuditLogs;
+use App\Livewire\Dashboard\Guests;
+use App\Livewire\Dashboard\Payments;
+use App\Livewire\Dashboard\Reports;
+use App\Livewire\Dashboard\Settings;
+use App\Livewire\Dashboard\CreateBooking;
+use App\Livewire\Dashboard\Fnb;
 use App\Models\Booking;
 
 // Redirect root
@@ -36,9 +44,17 @@ Route::middleware('auth')->group(function () {
     })->name('logout');
 
     // ── HMS Main screens ────────────────────────────────────────────────────
-    Route::get('/dashboard', RoomList::class)->name('dashboard');
+    Route::get('/dashboard', Reports::class)->name('dashboard');
+    Route::get('/room-availability', RoomList::class)->name('room-availability');
+    Route::get('/booking', CreateBooking::class)->name('booking.create');
     Route::get('/bookings', Bookings::class)->name('bookings');
     Route::get('/guest-bills', GuestBills::class)->name('guest-bills');
+    Route::get('/housekeeping', Housekeeping::class)->name('housekeeping');
+    Route::get('/guests', Guests::class)->name('guests');
+    Route::get('/payments', Payments::class)->name('payments');
+    Route::get('/fnb', Fnb::class)->name('fnb');
+    Route::get('/reports', Reports::class)->name('reports');
+    Route::get('/settings', Settings::class)->name('settings');
 
     // Receipt Invoice (Printable A4)
     Route::get('/bookings/{booking}/invoice', function (Booking $booking) {
@@ -48,7 +64,10 @@ Route::middleware('auth')->group(function () {
     })->name('bookings.invoice');
 
     // ── Admin-only screens ──────────────────────────────────────────────────
-    Route::get('/rooms', Rooms::class)->name('rooms');
-    Route::get('/admin/users', Users::class)->name('admin.users');
-    Route::get('/admin/services', Services::class)->name('admin.services');
+    Route::middleware('can:isAdmin')->group(function () {
+        Route::get('/rooms', Rooms::class)->name('rooms');
+        Route::get('/admin/users', Users::class)->name('admin.users');
+        Route::get('/admin/services', Services::class)->name('admin.services');
+        Route::get('/admin/audit-logs', AuditLogs::class)->name('audit-logs');
+    });
 });

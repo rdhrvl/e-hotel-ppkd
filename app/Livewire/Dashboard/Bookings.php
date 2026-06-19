@@ -28,13 +28,22 @@ class Bookings extends Component
     public ?int $bookingIdToCheckOut = null;
     public string $paymentMethod = 'cash';
 
+    protected $listeners = ['branchChanged' => '$refresh'];
+
     public function render(): \Illuminate\Contracts\View\View
     {
-        $bookings = Booking::with(['room.roomType', 'guestBill'])
+        $branchId = session('selected_branch_id', 1);
+
+        $bookings = Booking::with(['room.roomType', 'guestBill', 'guest'])
+            ->whereHas('room', function ($q) use ($branchId) {
+                $q->where('branch_id', $branchId);
+            })
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
-                    $q->where('guest_name', 'like', '%' . $this->search . '%')
-                      ->orWhere('guest_id', 'like', '%' . $this->search . '%');
+                    $q->whereHas('guest', function ($g) {
+                        $g->where('name', 'like', '%' . $this->search . '%')
+                          ->orWhere('identity_number', 'like', '%' . $this->search . '%');
+                    });
                 });
             })
             ->when($this->filterStatus, fn($q) => $q->where('status', $this->filterStatus))
@@ -57,8 +66,8 @@ class Bookings extends Component
         
         if ($booking->status === 'confirmed' || $booking->status === 'pending') {
             $booking->update(['status' => 'cancelled']);
-            $booking->room->update(['booking_status' => 'available']);
-            session()->flash('success', "Booking for {$booking->guest_name} cancelled successfully.");
+            $booking->room->update(['status' => 'available']);
+            session()->flash('success', "Booking for {$booking->guest->name} cancelled successfully.");
         } else {
             session()->flash('error', "Cannot cancel a booking that is already {$booking->status}.");
         }
@@ -89,7 +98,7 @@ class Bookings extends Component
 
         try {
             $bookingService->checkIn($booking, (float) $this->depositAmount);
-            session()->flash('success', "Guest {$booking->guest_name} checked in successfully!");
+            session()->flash('success', "Guest {$booking->guest->name} checked in successfully!");
             $this->closeCheckInModal();
         } catch (\Exception $e) {
             session()->flash('error', $e->getMessage());
@@ -117,7 +126,7 @@ class Bookings extends Component
 
         try {
             $bookingService->checkOut($booking, $this->paymentMethod);
-            session()->flash('success', "Guest {$booking->guest_name} checked out successfully!");
+            session()->flash('success', "Guest {$booking->guest->name} checked out successfully!");
             $this->closeCheckOutModal();
         } catch (\Exception $e) {
             session()->flash('error', $e->getMessage());

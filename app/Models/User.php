@@ -93,12 +93,18 @@ class User extends Authenticatable
     /** Check if the user holds the front desk role. */
     public function isFrontDesk(): bool
     {
-        return $this->role?->slug === 'front_desk';
+        return in_array($this->role?->slug, ['front_desk', 'superadmin'], true);
     }
 
     /** Check if the user holds the housekeeping role. */
     public function isHousekeeping(): bool
     {
-        return $this->role?->slug === 'housekeeping';
+        return in_array($this->role?->slug, ['housekeeping', 'superadmin'], true);
+    }
+
+    /** Check if the user holds the food & beverage role. */
+    public function isFnb(): bool
+    {
+        return in_array($this->role?->slug, ['fnb', 'superadmin'], true);
     }
 }

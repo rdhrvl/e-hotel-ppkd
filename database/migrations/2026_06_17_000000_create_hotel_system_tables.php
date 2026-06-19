@@ -11,11 +11,19 @@ return new class extends Migration
      */
     public function up(): void
     {
+        Schema::create('branches', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->text('address')->nullable();
+            $table->timestamps();
+        });
+
         Schema::create('room_types', function (Blueprint $table) {
             $table->id();
             $table->string('name');
+            $table->integer('capacity')->default(2);
+            $table->decimal('base_price', 10, 2);
             $table->text('description')->nullable();
-            $table->decimal('price_per_night', 10, 2);
             $table->timestamps();
         });
 
@@ -23,21 +31,34 @@ return new class extends Migration
             $table->id();
             $table->string('room_number')->unique();
             $table->foreignId('room_type_id')->constrained('room_types')->cascadeOnDelete();
-            $table->decimal('price_per_night', 10, 2)->nullable(); // Overrides type price if set
-            $table->string('booking_status')->default('available'); // 'available', 'booked', 'occupied'
-            $table->string('cleaning_status')->default('clean'); // 'clean', 'dirty', 'maintenance'
+            $table->foreignId('branch_id')->constrained('branches')->cascadeOnDelete();
+            $table->decimal('price', 10, 2)->nullable(); // Overrides type base_price if set
+            $table->integer('floor')->default(1);
+            $table->string('status')->default('available'); // 'available', 'reserved', 'occupied', 'cleaning', 'maintenance'
+            $table->text('notes')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('guests', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->string('email')->nullable();
+            $table->string('phone')->nullable();
+            $table->string('identity_number')->unique(); // KTP / Passport
+            $table->text('address')->nullable();
             $table->timestamps();
         });
 
         Schema::create('bookings', function (Blueprint $table) {
             $table->id();
-            $table->string('guest_name');
-            $table->string('guest_id'); // KTP / Passport
+            $table->string('booking_code')->unique();
+            $table->foreignId('guest_id')->constrained('guests')->cascadeOnDelete();
             $table->foreignId('room_id')->constrained('rooms')->cascadeOnDelete();
             $table->date('check_in_date');
             $table->date('check_out_date');
             $table->integer('number_of_guests')->default(1);
-            $table->string('status')->default('pending'); // 'pending', 'confirmed', 'checked_in', 'checked_out'
+            $table->string('status')->default('pending'); // 'pending', 'confirmed', 'checked_in', 'checked_out', 'cancelled'
+            $table->decimal('total_price', 10, 2)->default(0);
             $table->timestamps();
         });
 
@@ -74,8 +95,28 @@ return new class extends Migration
             $table->id();
             $table->foreignId('booking_id')->constrained('bookings')->cascadeOnDelete();
             $table->decimal('amount', 10, 2);
-            $table->string('payment_method'); // 'cash', 'bank_transfer'
-            $table->string('status')->default('confirmed'); // 'pending', 'confirmed'
+            $table->string('method')->default('cash'); // 'cash', 'transfer', 'e-wallet'
+            $table->string('status')->default('pending'); // 'pending', 'paid', 'failed'
+            $table->timestamps();
+        });
+
+        Schema::create('housekeeping_tasks', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('room_id')->constrained('rooms')->cascadeOnDelete();
+            $table->foreignId('staff_id')->constrained('users')->cascadeOnDelete();
+            $table->date('schedule_date');
+            $table->string('status')->default('scheduled'); // 'scheduled', 'in_progress', 'completed'
+            $table->timestamps();
+        });
+
+        Schema::create('audit_logs', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->string('action');
+            $table->string('entity_type')->nullable();
+            $table->unsignedBigInteger('entity_id')->nullable();
+            $table->json('old_value')->nullable();
+            $table->json('new_value')->nullable();
             $table->timestamps();
         });
     }
@@ -85,12 +126,16 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::dropIfExists('audit_logs');
+        Schema::dropIfExists('housekeeping_tasks');
         Schema::dropIfExists('payments');
         Schema::dropIfExists('booking_items');
         Schema::dropIfExists('guest_bills');
         Schema::dropIfExists('services');
         Schema::dropIfExists('bookings');
+        Schema::dropIfExists('guests');
         Schema::dropIfExists('rooms');
         Schema::dropIfExists('room_types');
+        Schema::dropIfExists('branches');
     }
 };

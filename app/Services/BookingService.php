@@ -10,12 +10,31 @@ use App\Models\GuestBill;
 use App\Models\Payment;
 use App\Models\Room;
 use App\Models\Service;
+use App\Models\Guest;
+use App\Models\HousekeepingTask;
+use App\Models\AuditLog;
+use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 class BookingService
 {
+    /**
+     * Helper to write audit logs.
+     */
+    protected function logActivity(string $action, ?string $entityType = null, ?int $entityId = null, ?array $oldValue = null, ?array $newValue = null): void
+    {
+        AuditLog::create([
+            'user_id' => auth()->id(),
+            'action' => $action,
+            'entity_type' => $entityType,
+            'entity_id' => $entityId,
+            'old_value' => $oldValue,
+            'new_value' => $newValue,
+        ]);
+    }
+
     /**
      * Check if a room is booked/occupied during a specified date range.
      */
@@ -50,28 +69,40 @@ class BookingService
             $checkIn = $data['check_in_date'];
             $checkOut = $data['check_out_date'];
 
+            // Find or create guest
+            $guest = Guest::firstOrCreate(
+                ['identity_number' => $data['guest_id']],
+                [
+                    'name' => $data['guest_name'],
+                    'phone' => $data['guest_phone'] ?? null,
+                    'email' => $data['guest_email'] ?? null,
+                    'address' => $data['guest_address'] ?? null,
+                ]
+            );
+
             // Prevent double booking
             if (!$this->isRoomAvailable($roomId, $checkIn, $checkOut)) {
                 throw new InvalidArgumentException('The selected room is not available for the chosen dates.');
             }
 
+            $room = Room::findOrFail($roomId);
+            
+            // Calculate nights
+            $nights = (int) Carbon::parse($checkIn)->diffInDays(Carbon::parse($checkOut));
+            $roomCharges = $room->effective_price * $nights;
+
             // Create booking
             $booking = Booking::create([
-                'guest_name' => $data['guest_name'],
-                'guest_id' => $data['guest_id'],
+                'guest_id' => $guest->id,
                 'room_id' => $roomId,
                 'check_in_date' => $checkIn,
                 'check_out_date' => $checkOut,
                 'number_of_guests' => $data['number_of_guests'] ?? 1,
                 'status' => 'confirmed',
+                'total_price' => $roomCharges,
             ]);
 
-            // Calculate room charges
-            $room = Room::findOrFail($roomId);
-            $nights = $booking->nights;
-            $roomCharges = $room->effective_price * $nights;
-
-            // Create empty guest bill
+            // Create guest bill
             GuestBill::create([
                 'booking_id' => $booking->id,
                 'deposit_amount' => 0.00,
@@ -81,8 +112,15 @@ class BookingService
                 'status' => 'unpaid',
             ]);
 
-            // Set room status to booked
-            $room->update(['booking_status' => 'booked']);
+            // Set room status to reserved
+            $room->update(['status' => 'reserved']);
+
+            $this->logActivity(
+                action: 'Create Booking',
+                entityType: Booking::class,
+                entityId: $booking->id,
+                newValue: $booking->toArray()
+            );
 
             return $booking;
         });
@@ -98,8 +136,9 @@ class BookingService
                 throw new InvalidArgumentException('Only pending or confirmed bookings can be checked in.');
             }
 
+            $oldBooking = $booking->toArray();
             $booking->update(['status' => 'checked_in']);
-            $booking->room->update(['booking_status' => 'occupied']);
+            $booking->room->update(['status' => 'occupied']);
 
             $bill = $booking->guestBill;
             if ($bill) {
@@ -111,11 +150,19 @@ class BookingService
                     Payment::create([
                         'booking_id' => $booking->id,
                         'amount' => $depositAmount,
-                        'payment_method' => 'cash', // Default deposit to cash
-                        'status' => 'confirmed',
+                        'method' => 'cash', // default to cash
+                        'status' => 'paid',
                     ]);
                 }
             }
+
+            $this->logActivity(
+                action: 'Check-In Guest',
+                entityType: Booking::class,
+                entityId: $booking->id,
+                oldValue: $oldBooking,
+                newValue: $booking->fresh()->toArray()
+            );
         });
     }
 
@@ -147,6 +194,13 @@ class BookingService
                 $bill->increment('total_extra_charges', $price * $quantity);
             }
 
+            $this->logActivity(
+                action: 'Add Service Charge',
+                entityType: BookingItem::class,
+                entityId: $item->id,
+                newValue: $item->toArray()
+            );
+
             return $item;
         });
     }
@@ -175,8 +229,8 @@ class BookingService
                 Payment::create([
                     'booking_id' => $booking->id,
                     'amount' => $dueAmount,
-                    'payment_method' => $paymentMethod,
-                    'status' => 'confirmed',
+                    'method' => $paymentMethod === 'bank_transfer' ? 'transfer' : $paymentMethod,
+                    'status' => 'paid',
                 ]);
             }
 
@@ -186,14 +240,34 @@ class BookingService
                 'status' => 'paid',
             ]);
 
-            // Update booking status
+            $oldBooking = $booking->toArray();
             $booking->update(['status' => 'checked_out']);
 
-            // Free room: booking status back to available, and mark it dirty for housekeeping
+            // Free room and set status to cleaning
             $booking->room->update([
-                'booking_status' => 'available',
-                'cleaning_status' => 'dirty',
+                'status' => 'cleaning',
             ]);
+
+            // Create Housekeeping Task
+            // Find housekeeping staff if available, otherwise leave unassigned/assign to first housekeeping user
+            $housekeeper = User::whereHas('role', function ($q) {
+                $q->where('slug', 'housekeeping');
+            })->first();
+
+            HousekeepingTask::create([
+                'room_id' => $booking->room_id,
+                'staff_id' => $housekeeper ? $housekeeper->id : 1, // fallback
+                'schedule_date' => Carbon::now()->toDateString(),
+                'status' => 'scheduled',
+            ]);
+
+            $this->logActivity(
+                action: 'Check-Out Guest',
+                entityType: Booking::class,
+                entityId: $booking->id,
+                oldValue: $oldBooking,
+                newValue: $booking->fresh()->toArray()
+            );
         });
     }
 }

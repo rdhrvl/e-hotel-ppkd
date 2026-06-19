@@ -15,8 +15,8 @@ class Payment extends Model
     protected $fillable = [
         'booking_id',
         'amount',
-        'payment_method', // 'cash', 'bank_transfer'
-        'status', // 'confirmed', 'pending'
+        'method', // 'cash', 'transfer', 'e-wallet'
+        'status', // 'pending', 'paid', 'failed'
     ];
 
     protected $casts = [
@@ -27,5 +27,16 @@ class Payment extends Model
     public function booking(): BelongsTo
     {
         return $this->belongsTo(Booking::class);
+    }
+
+    // Compatibility accessors for payment_method
+    public function getPaymentMethodAttribute(): string
+    {
+        return $this->method === 'transfer' ? 'bank_transfer' : $this->method;
+    }
+
+    public function setPaymentMethodAttribute(string $value): void
+    {
+        $this->attributes['method'] = $value === 'bank_transfer' ? 'transfer' : $value;
     }
 }

@@ -24,15 +24,24 @@ class GuestBills extends Component
     public int $serviceQuantity = 1;
     public string $serviceNotes = '';
 
+    protected $listeners = ['branchChanged' => '$refresh'];
+
     public function render(): \Illuminate\Contracts\View\View
     {
+        $branchId = session('selected_branch_id', 1);
+
         // Load active or checked out bookings with their bills
-        $bookings = Booking::with(['room.roomType', 'guestBill', 'bookingItems.service'])
+        $bookings = Booking::with(['room.roomType', 'guestBill', 'bookingItems.service', 'guest'])
+            ->whereHas('room', function ($q) use ($branchId) {
+                $q->where('branch_id', $branchId);
+            })
             ->whereIn('status', ['checked_in', 'checked_out'])
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
-                    $q->where('guest_name', 'like', '%' . $this->search . '%')
-                      ->orWhere('guest_id', 'like', '%' . $this->search . '%');
+                    $q->whereHas('guest', function ($g) {
+                        $g->where('name', 'like', '%' . $this->search . '%')
+                          ->orWhere('identity_number', 'like', '%' . $this->search . '%');
+                    });
                 });
             })
             ->orderBy('status', 'asc') // Active checked_in first

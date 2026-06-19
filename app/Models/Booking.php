@@ -10,25 +10,45 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Str;
 
 class Booking extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'guest_name',
+        'booking_code',
         'guest_id',
         'room_id',
         'check_in_date',
         'check_out_date',
         'number_of_guests',
-        'status', // 'pending', 'confirmed', 'checked_in', 'checked_out'
+        'status', // 'pending', 'confirmed', 'checked_in', 'checked_out', 'cancelled'
+        'total_price',
     ];
 
     protected $casts = [
         'check_in_date' => 'date',
         'check_out_date' => 'date',
+        'total_price' => 'decimal:2',
     ];
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($booking) {
+            if (empty($booking->booking_code)) {
+                $booking->booking_code = 'BK-' . strtoupper(Str::random(6));
+            }
+        });
+    }
+
+    /** @return BelongsTo<Guest, $this> */
+    public function guest(): BelongsTo
+    {
+        return $this->belongsTo(Guest::class);
+    }
 
     /** @return BelongsTo<Room, $this> */
     public function room(): BelongsTo
@@ -71,5 +91,11 @@ class Booking extends Model
             return 0;
         }
         return (int) $this->check_in_date->diffInDays($this->check_out_date);
+    }
+
+    // Compatibility accessors
+    public function getGuestNameAttribute(): string
+    {
+        return $this->guest?->name ?? 'Guest';
     }
 }

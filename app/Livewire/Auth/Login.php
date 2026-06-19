@@ -13,7 +13,7 @@ use Livewire\Component;
 #[Title('Login')]
 class Login extends Component
 {
-    public string $phone = '';
+    public string $email = '';
 
     public string $password = '';
 
@@ -27,7 +27,7 @@ class Login extends Component
     protected function rules(): array
     {
         return [
-            'phone' => ['required'],
+            'email' => ['required', 'email'],
             'password' => ['required', 'min:6'],
         ];
     }
@@ -39,15 +39,15 @@ class Login extends Component
     {
         $this->validate();
 
-        if (! Auth::attempt(['phone' => $this->phone, 'password' => $this->password], $this->remember)) {
-            $this->addError('phone', 'Invalid credentials.');
+        if (! Auth::attempt(['email' => $this->email, 'password' => $this->password], $this->remember)) {
+            $this->addError('email', 'Invalid credentials.');
 
             return;
         }
 
         session()->regenerate();
 
-        $this->redirect(route('dashboard'), navigate: true);
+        $this->redirect(route('dashboard'));
     }
 
     public function render(): \Illuminate\Contracts\View\View

@@ -16,13 +16,15 @@ class Room extends Model
     protected $fillable = [
         'room_number',
         'room_type_id',
-        'price_per_night',
-        'booking_status',
-        'cleaning_status',
+        'branch_id',
+        'price',
+        'floor',
+        'status',
+        'notes',
     ];
 
     protected $casts = [
-        'price_per_night' => 'decimal:2',
+        'price' => 'decimal:2',
     ];
 
     /** @return BelongsTo<RoomType, $this> */
@@ -31,10 +33,22 @@ class Room extends Model
         return $this->belongsTo(RoomType::class);
     }
 
+    /** @return BelongsTo<Branch, $this> */
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
+    }
+
     /** @return HasMany<Booking, $this> */
     public function bookings(): HasMany
     {
         return $this->hasMany(Booking::class);
+    }
+
+    /** @return HasMany<HousekeepingTask, $this> */
+    public function housekeepingTasks(): HasMany
+    {
+        return $this->hasMany(HousekeepingTask::class);
     }
 
     /**
@@ -42,7 +56,7 @@ class Room extends Model
      */
     public function getEffectivePriceAttribute(): float
     {
-        return (float) ($this->price_per_night ?? $this->roomType->price_per_night);
+        return (float) ($this->price ?? $this->roomType->price_per_night);
     }
 
     /**
@@ -60,6 +74,6 @@ class Room extends Model
      */
     public function isAvailable(): bool
     {
-        return $this->booking_status === 'available';
+        return $this->status === 'available';
     }
 }

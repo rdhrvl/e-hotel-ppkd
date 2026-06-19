@@ -14,40 +14,46 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 
 #[Layout('layouts.app')]
-#[Title('Room Status Board')]
+#[Title('Room Availability')]
 class RoomList extends Component
 {
     // Filters
     public string $filterType = '';
     public string $filterStatus = '';
-    public string $filterCleaning = '';
+    public string $filterBedType = '';
+    public string $filterBreakfast = '';
 
-    // Booking Modal
-    public bool $showBookingModal = false;
+    // Selected Room Details
     public ?int $selectedRoomId = null;
+
+    // Booking form fields (used inline in the sidebar panel)
     public string $guestName = '';
     public string $guestId = '';
+    public string $guestPhone = '';
+    public string $guestEmail = '';
+    public string $guestAddress = '';
     public int $numberGuests = 1;
     public string $checkInDate = '';
     public string $checkOutDate = '';
     public array $bookingServices = []; // Selected extra service IDs
 
-    // Check In Modal
-    public bool $showCheckInModal = false;
-    public ?int $bookingIdToCheckIn = null;
-    public float $depositAmount = 0;
+    // Check In form fields
+    public float $depositAmount = 50000;
 
-    // Check Out Modal
-    public bool $showCheckOutModal = false;
-    public ?int $bookingIdToCheckOut = null;
+    // Check Out form fields
     public string $paymentMethod = 'cash';
 
-    // Add Service Charge Modal
-    public bool $showAddServiceModal = false;
-    public ?int $bookingIdToAddService = null;
+    // Add Service form fields
     public ?int $selectedServiceId = null;
     public int $serviceQuantity = 1;
     public string $serviceNotes = '';
+
+    // Active IDs
+    public ?int $bookingIdToCheckIn = null;
+    public ?int $bookingIdToCheckOut = null;
+    public ?int $bookingIdToAddService = null;
+
+    protected $listeners = ['branchChanged' => '$refresh'];
 
     public function mount(): void
     {
@@ -56,63 +62,94 @@ class RoomList extends Component
         $this->checkOutDate = now()->addDay()->format('Y-m-d');
     }
 
+    public function selectRoom(int $roomId): void
+    {
+        $this->selectedRoomId = $roomId;
+        $room = Room::find($roomId);
+        if ($room) {
+            $booking = Booking::where('room_id', $roomId)
+                ->whereIn('status', ['confirmed', 'checked_in'])
+                ->first();
+
+            if ($booking) {
+                $this->bookingIdToCheckIn = $booking->id;
+                $this->bookingIdToCheckOut = $booking->id;
+                $this->bookingIdToAddService = $booking->id;
+            } else {
+                $this->bookingIdToCheckIn = null;
+                $this->bookingIdToCheckOut = null;
+                $this->bookingIdToAddService = null;
+            }
+            
+            // Reset fields
+            $this->guestName = '';
+            $this->guestId = '';
+            $this->guestPhone = '';
+            $this->guestEmail = '';
+            $this->guestAddress = '';
+            $this->numberGuests = 1;
+            $this->bookingServices = [];
+            $this->depositAmount = 50000;
+            $this->paymentMethod = 'cash';
+            $this->selectedServiceId = Service::first()?->id;
+            $this->serviceQuantity = 1;
+            $this->serviceNotes = '';
+            $this->resetErrorBag();
+        }
+    }
+
     public function render(): \Illuminate\Contracts\View\View
     {
-        $rooms = Room::with('roomType')
+        $branchId = session('selected_branch_id', 1);
+
+        $rooms = Room::with(['roomType', 'activeBooking.guest'])
+            ->where('branch_id', $branchId)
             ->when($this->filterType, fn($q) => $q->where('room_type_id', $this->filterType))
-            ->when($this->filterStatus, fn($q) => $q->where('booking_status', $this->filterStatus))
-            ->when($this->filterCleaning, fn($q) => $q->where('cleaning_status', $this->filterCleaning))
+            ->when($this->filterStatus, fn($q) => $q->where('status', $this->filterStatus))
+            ->when($this->filterBedType, function($q) {
+                $q->whereHas('roomType', fn($sub) => $sub->where('bed_type', $this->filterBedType));
+            })
+            ->when($this->filterBreakfast !== '', function($q) {
+                $q->whereHas('roomType', fn($sub) => $sub->where('has_breakfast', $this->filterBreakfast === '1'));
+            })
             ->orderBy('room_number')
             ->get();
 
         $roomTypes = RoomType::all();
         $services = Service::all();
 
-        // Load active booking details if modal is open
-        $checkInBooking = $this->bookingIdToCheckIn ? Booking::with('room.roomType')->find($this->bookingIdToCheckIn) : null;
-        $checkOutBooking = $this->bookingIdToCheckOut ? Booking::with(['room.roomType', 'guestBill', 'bookingItems.service'])->find($this->bookingIdToCheckOut) : null;
-        $addServiceBooking = $this->bookingIdToAddService ? Booking::find($this->bookingIdToAddService) : null;
+        $selectedRoom = $this->selectedRoomId ? Room::with(['roomType', 'activeBooking.guest'])->find($this->selectedRoomId) : null;
+        $checkInBooking = $this->bookingIdToCheckIn ? Booking::with('guest')->find($this->bookingIdToCheckIn) : null;
+        $checkOutBooking = $this->bookingIdToCheckOut ? Booking::with(['guestBill', 'bookingItems.service', 'guest'])->find($this->bookingIdToCheckOut) : null;
 
         return view('livewire.dashboard.room-list', [
             'rooms' => $rooms,
             'roomTypes' => $roomTypes,
             'services' => $services,
+            'selectedRoom' => $selectedRoom,
             'checkInBooking' => $checkInBooking,
             'checkOutBooking' => $checkOutBooking,
-            'addServiceBooking' => $addServiceBooking,
         ]);
     }
 
-    // Housekeeping Status Toggle
+    // Status Toggle
     public function updateCleaningStatus(int $roomId, string $status): void
     {
         $room = Room::findOrFail($roomId);
-        $room->update(['cleaning_status' => $status]);
+        $room->update(['status' => $status]);
         session()->flash('success', "Room {$room->room_number} status updated to {$status}.");
+        $this->selectRoom($roomId);
     }
 
     // BOOKING OPERATIONS
-    public function openBookingModal(int $roomId): void
-    {
-        $this->selectedRoomId = $roomId;
-        $this->guestName = '';
-        $this->guestId = '';
-        $this->numberGuests = 1;
-        $this->bookingServices = [];
-        $this->showBookingModal = true;
-    }
-
-    public function closeBookingModal(): void
-    {
-        $this->showBookingModal = false;
-        $this->resetErrorBag();
-    }
-
     public function bookRoom(BookingService $bookingService): void
     {
         $this->validate([
             'guestName' => 'required|string|max:255',
             'guestId' => 'required|string|max:50',
+            'guestPhone' => 'nullable|string|max:20',
+            'guestEmail' => 'nullable|email|max:255',
+            'guestAddress' => 'nullable|string',
             'numberGuests' => 'required|integer|min:1|max:10',
             'checkInDate' => 'required|date|after_or_equal:today',
             'checkOutDate' => 'required|date|after:checkInDate',
@@ -122,22 +159,18 @@ class RoomList extends Component
             $booking = $bookingService->createBooking([
                 'guest_name' => $this->guestName,
                 'guest_id' => $this->guestId,
+                'guest_phone' => $this->guestPhone,
+                'guest_email' => $this->guestEmail,
+                'guest_address' => $this->guestAddress,
                 'room_id' => $this->selectedRoomId,
                 'check_in_date' => $this->checkInDate,
                 'check_out_date' => $this->checkOutDate,
                 'number_of_guests' => $this->numberGuests,
             ]);
 
-            // Add initial services selected in booking
             foreach ($this->bookingServices as $serviceId) {
-                // Since this is booked (pre-arrival), we temporarily add it to bill when checking in,
-                // but the seeder handles it. In actual system, we associate services to bookings.
-                // We'll charge services via addServiceCharge later when guest checks in.
                 $service = Service::find($serviceId);
                 if ($service) {
-                    // We can charge standard services immediately if checked in, but since booking is "confirmed" (pre-arrival),
-                    // they will be loaded as items when check-in happens, or we can add them to the bill now.
-                    // Let's add them to the bill's extra charges!
                     $bill = $booking->guestBill;
                     if ($bill) {
                         \App\Models\BookingItem::create([
@@ -152,36 +185,13 @@ class RoomList extends Component
             }
 
             session()->flash('success', 'Room booked successfully!');
-            $this->closeBookingModal();
+            $this->selectRoom((int) $this->selectedRoomId);
         } catch (\Exception $e) {
             $this->addError('checkInDate', $e->getMessage());
         }
     }
 
     // CHECK-IN OPERATIONS
-    public function openCheckInModal(int $roomId): void
-    {
-        $room = Room::findOrFail($roomId);
-        // Find the active confirmed booking for this room
-        $booking = Booking::where('room_id', $roomId)
-            ->where('status', 'confirmed')
-            ->first();
-
-        if ($booking) {
-            $this->bookingIdToCheckIn = $booking->id;
-            $this->depositAmount = 50000; // Default deposit
-            $this->showCheckInModal = true;
-        } else {
-            session()->flash('error', 'No confirmed booking found for this room. Please reserve first.');
-        }
-    }
-
-    public function closeCheckInModal(): void
-    {
-        $this->showCheckInModal = false;
-        $this->bookingIdToCheckIn = null;
-    }
-
     public function checkInGuest(BookingService $bookingService): void
     {
         $this->validate([
@@ -192,73 +202,28 @@ class RoomList extends Component
 
         try {
             $bookingService->checkIn($booking, (float) $this->depositAmount);
-            session()->flash('success', "Guest {$booking->guest_name} checked in successfully!");
-            $this->closeCheckInModal();
+            session()->flash('success', "Guest {$booking->guest->name} checked in successfully!");
+            $this->selectRoom((int) $this->selectedRoomId);
         } catch (\Exception $e) {
             session()->flash('error', $e->getMessage());
         }
     }
 
     // CHECK-OUT OPERATIONS
-    public function openCheckOutModal(int $roomId): void
-    {
-        $booking = Booking::where('room_id', $roomId)
-            ->where('status', 'checked_in')
-            ->first();
-
-        if ($booking) {
-            $this->bookingIdToCheckOut = $booking->id;
-            $this->paymentMethod = 'cash';
-            $this->showCheckOutModal = true;
-        } else {
-            session()->flash('error', 'No checked-in guest found in this room.');
-        }
-    }
-
-    public function closeCheckOutModal(): void
-    {
-        $this->showCheckOutModal = false;
-        $this->bookingIdToCheckOut = null;
-    }
-
     public function checkOutGuest(BookingService $bookingService): void
     {
         $booking = Booking::findOrFail($this->bookingIdToCheckOut);
 
         try {
             $bookingService->checkOut($booking, $this->paymentMethod);
-            session()->flash('success', "Guest {$booking->guest_name} checked out successfully!");
-            $this->closeCheckOutModal();
+            session()->flash('success', "Guest {$booking->guest->name} checked out successfully!");
+            $this->selectRoom((int) $this->selectedRoomId);
         } catch (\Exception $e) {
             session()->flash('error', $e->getMessage());
         }
     }
 
     // EXTRA SERVICE CHARGES OPERATIONS
-    public function openAddServiceModal(int $roomId): void
-    {
-        $booking = Booking::where('room_id', $roomId)
-            ->where('status', 'checked_in')
-            ->first();
-
-        if ($booking) {
-            $this->bookingIdToAddService = $booking->id;
-            $this->selectedServiceId = Service::first()?->id;
-            $this->serviceQuantity = 1;
-            $this->serviceNotes = '';
-            $this->showAddServiceModal = true;
-        } else {
-            session()->flash('error', 'Only active guests can receive additional service charges.');
-        }
-    }
-
-    public function closeAddServiceModal(): void
-    {
-        $this->showAddServiceModal = false;
-        $this->bookingIdToAddService = null;
-        $this->resetErrorBag();
-    }
-
     public function addServiceCharge(BookingService $bookingService): void
     {
         $this->validate([
@@ -277,7 +242,7 @@ class RoomList extends Component
                 $this->serviceNotes
             );
             session()->flash('success', 'Service charge added to bill.');
-            $this->closeAddServiceModal();
+            $this->selectRoom((int) $this->selectedRoomId);
         } catch (\Exception $e) {
             session()->flash('error', $e->getMessage());
         }

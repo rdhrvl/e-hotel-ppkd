@@ -1,12 +1,8 @@
 <div>
     {{-- ── Search Controls ── --}}
-    <div class="card mb-6" style="padding: 16px 20px;">
-        <div class="flex items-center gap-3">
-            <div style="flex: 1;">
-                <label class="form-label" style="margin-bottom: 4px; font-size: 0.75rem;">Search Guest Bill</label>
-                <input type="text" wire:model.live="search" class="form-input" placeholder="Search by guest name or ID document..." style="padding: 8px 12px;">
-            </div>
-        </div>
+    <div class="rounded border border-[var(--border-color)] bg-[var(--bg-card)] p-5 mb-8 shadow-sm">
+        <label class="block text-[10px] font-bold text-[var(--text-muted)] mb-1.5 uppercase tracking-wider">Search Guest Bill</label>
+        <input type="text" wire:model.live="search" class="w-full rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-sm text-[var(--text-primary)] placeholder-[#8e8d89] focus:border-[#111111] focus:outline-none transition-all" placeholder="Search by guest name or ID document...">
     </div>
 
     @if($selectedBookingId)
@@ -14,39 +10,36 @@
             $activeBooking = \App\Models\Booking::find($selectedBookingId);
         @endphp
         {{-- ── Charge Extra Service Panel ── --}}
-        <div class="card mb-6" style="border: 1px solid rgba(108,92,231,0.3); background: rgba(108,92,231,0.02);">
-            <div class="flex items-center justify-between mb-4">
-                <h3 style="font-size: 1.1rem; margin: 0; color: var(--text-primary);">Charge Extra Service to {{ $activeBooking->guest_name }} (Room {{ $activeBooking->room->room_number }})</h3>
-                <button wire:click="$set('selectedBookingId', null)" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;">Cancel</button>
+        <div class="rounded border border-[var(--border-color)] bg-[var(--bg-primary)] p-6 mb-8 shadow-sm">
+            <div class="flex items-center justify-between mb-5 border-b border-[var(--border-color)] pb-3">
+                <h3 class="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider">Charge Extra Service to {{ $activeBooking->guest->name }} (Room {{ $activeBooking->room->room_number }})</h3>
+                <button wire:click="$set('selectedBookingId', null)" class="rounded border border-[var(--border-color)] bg-[var(--bg-card)] hover:bg-[var(--bg-secondary)] px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)] transition-colors">Cancel</button>
             </div>
             
-            <form wire:submit.prevent="addServiceCharge" class="flex gap-4 items-end" style="flex-wrap: wrap;">
-                <div class="form-group" style="flex: 2; min-width: 200px; margin-bottom: 0;">
-                    <label class="form-label" for="selectedServiceId">Select Service</label>
-                    <select id="selectedServiceId" wire:model="selectedServiceId" class="form-input" style="padding: 10px 14px;" required>
+            <form wire:submit.prevent="addServiceCharge" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                <div class="md:col-span-2">
+                    <label class="block text-[10px] font-bold text-[var(--text-muted)] mb-1.5 uppercase tracking-wider">Select Service</label>
+                    <select wire:model="selectedServiceId" class="w-full rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-sm text-[var(--text-primary)] focus:border-[#111111] focus:outline-none transition-all" required>
                         @foreach($services as $service)
                             <option value="{{ $service->id }}">{{ $service->name }} (Rp {{ number_format($service->price) }})</option>
                         @endforeach
                     </select>
                 </div>
 
-                <div class="form-group" style="flex: 1; min-width: 100px; margin-bottom: 0;">
-                    <label class="form-label" for="serviceQuantity">Quantity</label>
-                    <input type="number" id="serviceQuantity" wire:model="serviceQuantity" class="form-input" style="padding: 10px 14px;" min="1" required>
+                <div>
+                    <label class="block text-[10px] font-bold text-[var(--text-muted)] mb-1.5 uppercase tracking-wider">Quantity</label>
+                    <input type="number" wire:model="serviceQuantity" class="w-full rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-sm text-[var(--text-primary)] focus:border-[#111111] focus:outline-none transition-all" min="1" required>
                 </div>
 
-                <div class="form-group" style="flex: 2; min-width: 200px; margin-bottom: 0;">
-                    <label class="form-label" for="serviceNotes">Notes / Description (Optional)</label>
-                    <input type="text" id="serviceNotes" wire:model="serviceNotes" class="form-input" style="padding: 10px 14px;" placeholder="e.g. Deliver to Room {{ $activeBooking->room->room_number }}">
+                <div>
+                    <button type="submit" class="w-full rounded bg-[var(--text-primary)] hover:bg-[var(--text-secondary)] px-4 py-2.5 text-xs font-semibold text-[var(--bg-card)] transition-all duration-150 active:scale-[0.98]">Add Charge</button>
                 </div>
-
-                <button type="submit" class="btn btn-primary" style="padding: 11px 24px;">Add Charge</button>
             </form>
         </div>
     @endif
 
     {{-- ── Bills List ── --}}
-    <div class="flex flex-col gap-4">
+    <div class="space-y-6">
         @forelse($bookings as $booking)
             @php
                 $bill = $booking->guestBill;
@@ -57,123 +50,121 @@
                 $grandTotal = $roomCost + $extraCost;
                 $balance = $grandTotal - $deposit - $paid;
             @endphp
-            <div class="card" style="padding: 24px;">
-                <div class="flex justify-between items-start mb-4 pb-3" style="border-bottom: 1px solid var(--border-color); flex-wrap: wrap; gap: 12px;">
+            <div class="rounded border border-[var(--border-color)] bg-[var(--bg-card)] p-6 shadow-sm space-y-6 transition-all duration-250">
+                <div class="flex flex-col md:flex-row md:items-center justify-between border-b border-[var(--border-color)] pb-4 gap-4">
                     <div>
-                        <div class="flex items-center gap-3">
-                            <h3 style="font-size: 1.15rem; margin: 0; color: var(--text-primary);">{{ $booking->guest_name }}</h3>
-                            <span class="badge" style="background: rgba(255,255,255,0.05); color: var(--text-secondary);">Room {{ $booking->room->room_number }} ({{ $booking->room->roomType->name }})</span>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <h3 class="text-sm font-bold text-[var(--text-primary)]">{{ $booking->guest->name }}</h3>
+                            <span class="inline-flex rounded bg-[var(--bg-secondary)] px-2.5 py-0.5 text-[10px] font-semibold text-[var(--text-secondary)]">Room {{ $booking->room->room_number }} ({{ $booking->room->roomType->name }})</span>
                             @if($booking->status === 'checked_in')
-                                <span class="badge badge-transit" style="background: rgba(253, 203, 110, 0.15); color: var(--warning);">In-House</span>
+                                <span class="inline-flex rounded bg-[var(--warning-bg)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[var(--warning)] border border-[var(--border-color)]">In-House</span>
                             @else
-                                <span class="badge badge-completed" style="background: rgba(0, 184, 148, 0.15); color: var(--success);">Checked Out</span>
+                                <span class="inline-flex rounded bg-[var(--success-bg)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[var(--success)] border border-[var(--border-color)]">Checked Out</span>
                             @endif
                         </div>
-                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">
-                            Stay period: {{ $booking->check_in_date->format('d M Y') }} to {{ $booking->check_out_date->format('d M Y') }} ({{ $booking->nights }} nights) • ID: {{ $booking->guest_id }}
-                        </div>
+                        <p class="text-xs text-[var(--text-muted)] mt-1.5 font-medium">
+                            Stay: {{ $booking->check_in_date->format('d M Y') }} to {{ $booking->check_out_date->format('d M Y') }} ({{ $booking->nights }} nights) &bull; ID: <span class="font-mono text-[var(--text-primary)]">{{ $booking->guest->identity_number }}</span>
+                        </p>
                     </div>
 
-                    <div class="flex gap-2">
+                    <div class="flex items-center gap-2">
                         @if($booking->status === 'checked_in')
-                            <button wire:click="selectBookingForService({{ $booking->id }})" class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.8rem;">
+                            <button wire:click="selectBookingForService({{ $booking->id }})" class="rounded border border-[var(--border-color)] bg-[var(--bg-card)] hover:bg-[var(--bg-secondary)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] transition-all">
                                 + Charge Service
                             </button>
                         @endif
-                        <a href="{{ route('bookings.invoice', $booking->id) }}" target="_blank" class="btn btn-secondary" style="padding: 8px 12px;">
-                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline; margin-right: 4px;"><path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
-                            Invoice
+                        <a href="{{ route('bookings.invoice', $booking->id) }}" target="_blank" class="inline-flex items-center gap-1.5 rounded bg-[var(--text-primary)] hover:bg-[var(--text-secondary)] px-4 py-2 text-xs font-semibold text-[var(--bg-card)] transition-all duration-150 active:scale-[0.98]">
+                            Print Invoice
                         </a>
                     </div>
                 </div>
 
-                {{-- Billing Itemization Grid --}}
-                <div class="grid grid-cols-3 gap-6" style="grid-template-columns: 2fr 1fr; gap: 24px;">
-                    <div>
-                        <h4 style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 12px;">Itemized Charges</h4>
-                        <div class="table-responsive">
-                            <table class="table" style="font-size: 0.85rem;">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2">
+                        <span class="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider block mb-3">Itemized Charges</span>
+                        <div class="overflow-x-auto rounded border border-[var(--border-color)]">
+                            <table class="w-full text-left border-collapse text-xs">
                                 <thead>
-                                    <tr>
-                                        <th>Description</th>
-                                        <th>Qty/Nights</th>
-                                        <th>Rate</th>
-                                        <th style="text-align: right;">Amount</th>
+                                    <tr class="bg-[var(--bg-primary)] border-b border-[var(--border-color)] text-[var(--text-muted)] font-bold uppercase tracking-wider">
+                                        <th class="p-3">Description</th>
+                                        <th class="p-3 text-center">Qty/Nights</th>
+                                        <th class="p-3">Rate</th>
+                                        <th class="p-3 text-right">Amount</th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    <tr>
-                                        <td>Room Charge ({{ $booking->room->roomType->name }})</td>
-                                        <td>{{ $booking->nights }}</td>
-                                        <td>Rp {{ number_format($booking->room->effective_price) }}</td>
-                                        <td style="text-align: right; font-weight: 500; color: var(--text-primary);">Rp {{ number_format($roomCost) }}</td>
+                                <tbody class="divide-y divide-[var(--border-color)] text-[var(--text-secondary)]">
+                                    <tr class="hover:bg-[var(--bg-card-hover)]">
+                                        <td class="p-3">Room Charge ({{ $booking->room->roomType->name }})</td>
+                                        <td class="p-3 text-center font-mono text-[var(--text-primary)]">{{ $booking->nights }}</td>
+                                        <td class="p-3 font-mono">Rp {{ number_format($booking->room->effective_price) }}</td>
+                                        <td class="p-3 text-right font-bold text-[var(--text-primary)] font-mono">Rp {{ number_format($roomCost) }}</td>
                                     </tr>
-                                    @forelse($booking->bookingItems as $item)
-                                        <tr>
-                                            <td>
-                                                <div>{{ $item->service->name }}</div>
+                                    @foreach($booking->bookingItems as $item)
+                                        <tr class="hover:bg-[var(--bg-card-hover)]">
+                                            <td class="p-3">
+                                                <div class="font-bold text-[var(--text-primary)]">{{ $item->service->name }}</div>
                                                 @if($item->notes)
-                                                    <div style="font-size: 0.75rem; color: var(--text-muted);">{{ $item->notes }}</div>
+                                                    <span class="text-[9px] text-[var(--text-muted)] italic block mt-0.5">{{ $item->notes }}</span>
                                                 @endif
                                             </td>
-                                            <td>{{ $item->quantity }}</td>
-                                            <td>Rp {{ number_format((float)$item->price) }}</td>
-                                            <td style="text-align: right; font-weight: 500; color: var(--text-primary);">Rp {{ number_format($item->subtotal) }}</td>
+                                            <td class="p-3 text-center font-mono text-[var(--text-primary)]">{{ $item->quantity }}</td>
+                                            <td class="p-3 font-mono">Rp {{ number_format((float)$item->price) }}</td>
+                                            <td class="p-3 text-right font-bold text-[var(--text-primary)] font-mono">Rp {{ number_format($item->subtotal) }}</td>
                                         </tr>
-                                    @empty
-                                        {{-- No extras --}}
-                                    @endforelse
+                                    @endforeach
                                 </tbody>
                             </table>
                         </div>
                     </div>
 
-                    <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 20px; font-size: 0.85rem; align-self: start;">
-                        <h4 style="font-size: 0.85rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">Bill Summary</h4>
+                    <div class="rounded border border-[var(--border-color)] bg-[var(--bg-primary)] p-5 text-xs space-y-4 self-start">
+                        <span class="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider block border-b border-[var(--border-color)] pb-2">Bill Summary</span>
                         
-                        <div class="flex justify-between mb-2">
-                            <span>Room Cost:</span>
-                            <span style="font-weight: 500; color: var(--text-primary);">Rp {{ number_format($roomCost) }}</span>
-                        </div>
-
-                        <div class="flex justify-between mb-2">
-                            <span>Extra Charges:</span>
-                            <span style="font-weight: 500; color: var(--text-primary);">Rp {{ number_format($extraCost) }}</span>
-                        </div>
-
-                        <div class="flex justify-between mb-2 border-top pt-2" style="border-top: 1px solid var(--border-color); font-weight: 600; color: var(--text-primary); font-size: 0.95rem;">
-                            <span>Grand Total:</span>
-                            <span>Rp {{ number_format($grandTotal) }}</span>
-                        </div>
-
-                        <div class="flex justify-between mb-2" style="color: var(--success);">
-                            <span>Paid Deposit:</span>
-                            <span>- Rp {{ number_format($deposit) }}</span>
-                        </div>
-
-                        @if($paid > 0)
-                            <div class="flex justify-between mb-2" style="color: var(--success);">
-                                <span>Payments Settled:</span>
-                                <span>- Rp {{ number_format($paid) }}</span>
+                        <div class="space-y-2.5 text-xs">
+                            <div class="flex justify-between">
+                                <span class="text-[var(--text-muted)]">Room Cost:</span>
+                                <span class="font-bold text-[var(--text-primary)] font-mono">Rp {{ number_format($roomCost) }}</span>
                             </div>
-                        @endif
 
-                        <div class="flex justify-between border-top pt-2 mt-2" style="border-top: 2px solid var(--border-color); font-size: 1.05rem; font-weight: 700; color: var(--text-primary);">
-                            <span>Balance Due:</span>
-                            <span>Rp {{ number_format(max(0, $balance)) }}</span>
+                            <div class="flex justify-between">
+                                <span class="text-[var(--text-muted)]">Extra Charges:</span>
+                                <span class="font-bold text-[var(--text-primary)] font-mono">Rp {{ number_format($extraCost) }}</span>
+                            </div>
+
+                            <div class="flex justify-between border-t border-[var(--border-color)] pt-2 font-bold text-[var(--text-primary)] text-xs">
+                                <span>Grand Total:</span>
+                                <span class="font-mono">Rp {{ number_format($grandTotal) }}</span>
+                            </div>
+
+                            <div class="flex justify-between text-[var(--success)] font-bold">
+                                <span>Paid Deposit:</span>
+                                <span class="font-mono">- Rp {{ number_format($deposit) }}</span>
+                            </div>
+
+                            @if($paid > 0)
+                                <div class="flex justify-between text-[var(--success)] font-bold">
+                                    <span>Payments Settled:</span>
+                                    <span class="font-mono">- Rp {{ number_format($paid) }}</span>
+                                </div>
+                            @endif
+
+                            <div class="flex justify-between border-t border-[var(--border-color)] pt-2 mt-2 text-xs font-bold text-[var(--text-primary)]">
+                                <span>Balance Due:</span>
+                                <span class="text-[var(--danger)] font-mono">Rp {{ number_format(max(0, $balance)) }}</span>
+                            </div>
                         </div>
 
-                        <div class="mt-4 pt-2 border-top text-center" style="border-top: 1px dashed var(--border-color);">
-                            <span class="badge {{ $bill->status === 'paid' ? 'badge-completed' : 'badge-cancelled' }}" style="padding: 6px 12px;">
-                                Bill Status: {{ ucfirst($bill->status) }}
+                        <div class="border-t border-[var(--border-color)] pt-4 text-center">
+                            <span class="inline-flex rounded px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider {{ $bill->status === 'paid' ? 'bg-[var(--success-bg)] text-[var(--success)] border border-[var(--border-color)]' : 'bg-[var(--danger-bg)] text-[var(--danger)] border border-[var(--border-color)]' }}">
+                                {{ ucfirst($bill->status) }}
                             </span>
                         </div>
                     </div>
                 </div>
             </div>
         @empty
-            <div class="card text-center" style="padding: 40px; color: var(--text-muted);">
-                No active or completed guest bills found.
+            <div class="rounded border border-[var(--border-color)] bg-[var(--bg-card)] p-12 text-center shadow-sm">
+                <p class="text-[var(--text-muted)] font-medium">No active or completed guest bills found.</p>
             </div>
         @endforelse
     </div>

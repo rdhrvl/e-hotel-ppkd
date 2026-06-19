@@ -14,17 +14,34 @@ class RoomType extends Model
 
     protected $fillable = [
         'name',
+        'capacity',
+        'base_price',
         'description',
-        'price_per_night',
+        'bed_type',
+        'has_breakfast',
     ];
 
     protected $casts = [
-        'price_per_night' => 'decimal:2',
+        'base_price' => 'decimal:2',
+        'has_breakfast' => 'boolean',
     ];
 
     /** @return HasMany<Room, $this> */
     public function rooms(): HasMany
     {
         return $this->hasMany(Room::class);
+    }
+
+    /**
+     * Keep compatibility with existing code referring to price_per_night
+     */
+    public function getPricePerNightAttribute(): float
+    {
+        return (float) $this->base_price;
+    }
+
+    public function setPricePerNightAttribute($value): void
+    {
+        $this->attributes['base_price'] = $value;
     }
 }

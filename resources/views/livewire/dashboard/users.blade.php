@@ -1,279 +1,163 @@
 <div>
-    <style>
-        .admin-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 24px;
-            flex-wrap: wrap;
-            gap: 12px;
-        }
-        .admin-header h3 {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: var(--text-heading);
-        }
-        .search-box {
-            position: relative;
-            flex: 1;
-            min-width: 200px;
-            max-width: 320px;
-        }
-        .search-box input {
-            width: 100%;
-            padding: 10px 10px 10px 38px;
-            background: var(--bg-input);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            color: var(--text-heading);
-            font-size: 0.85rem;
-            font-family: 'Inter', sans-serif;
-            transition: border-color 0.2s;
-        }
-        .search-box input:focus { outline: none; border-color: var(--accent-primary); }
-        .search-box svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); opacity: 0.4; }
-
-        /* Table */
-        .data-table { width: 100%; border-collapse: collapse; }
-        .data-table th {
-            padding: 12px 16px;
-            text-align: left;
-            font-size: 0.7rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--text-body);
-            border-bottom: 1px solid var(--border-color);
-        }
-        .data-table td {
-            padding: 14px 16px;
-            font-size: 0.85rem;
-            border-bottom: 1px solid rgba(45,45,68,0.5);
-            color: var(--text-body);
-            vertical-align: middle;
-        }
-        .data-table tr:hover td { background: rgba(108,92,231,0.03); }
-        .data-table .user-name { font-weight: 600; color: var(--text-heading); }
-        .data-table .user-phone { font-size: 0.8rem; margin-top: 2px; }
-
-        .role-badge {
-            display: inline-block;
-            padding: 3px 10px;
-            border-radius: 20px;
-            font-size: 0.7rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .role-badge.superadmin { background: rgba(253,203,110,0.15); color: #fdcb6e; }
-        .role-badge.admin { background: rgba(108,92,231,0.15); color: var(--accent-primary); }
-        .role-badge.front_desk { background: rgba(0,184,148,0.15); color: var(--accent-success); }
-        .role-badge.housekeeping { background: rgba(253,203,110,0.15); color: var(--accent-warning); }
-        .role-badge.default { background: rgba(160,160,184,0.15); color: var(--text-body); }
-
-        /* Avatar */
-        .user-avatar {
-            width: 36px; height: 36px; border-radius: 10px;
-            display: flex; align-items: center; justify-content: center;
-            font-weight: 700; font-size: 0.85rem; color: #fff; flex-shrink: 0;
-        }
-
-        /* Action buttons */
-        .btn-icon { background: none; border: none; cursor: pointer; padding: 6px; border-radius: 8px; transition: all 0.2s; display: inline-flex; align-items: center; }
-        .btn-icon:hover { background: rgba(108,92,231,0.1); }
-        .btn-icon.danger:hover { background: rgba(225,112,85,0.1); color: var(--accent-danger); }
-
-        /* Card */
-        .panel-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            overflow: hidden;
-        }
-
-        /* Modal */
-        .modal-backdrop {
-            position: fixed; inset: 0;
-            background: rgba(0,0,0,0.6);
-            backdrop-filter: blur(4px);
-            z-index: 200;
-            display: flex; align-items: center; justify-content: center;
-            padding: 20px;
-        }
-        .modal-box {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 20px;
-            padding: 32px;
-            width: 100%; max-width: 480px;
-            box-shadow: 0 24px 64px rgba(0,0,0,0.5);
-            animation: modalIn 0.25s cubic-bezier(.4,0,.2,1);
-        }
-        @keyframes modalIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-        .modal-title {
-            font-size: 1.1rem; font-weight: 700; color: var(--text-heading);
-            margin-bottom: 20px; display: flex; align-items: center; gap: 10px;
-        }
-        .modal-actions { display: flex; gap: 10px; margin-top: 24px; }
-        .modal-actions .btn { flex: 1; }
-
-        /* Form */
-        .form-group { margin-bottom: 16px; }
-        .form-label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-body); margin-bottom: 6px; letter-spacing: 0.3px; }
-        .form-input {
-            width: 100%; padding: 10px 14px;
-            background: var(--bg-input); border: 1px solid var(--border-color);
-            border-radius: 10px; color: var(--text-heading); font-size: 0.875rem;
-            font-family: 'Inter', sans-serif; transition: border-color 0.2s;
-        }
-        .form-input:focus { outline: none; border-color: var(--accent-primary); }
-        .form-error { display: block; font-size: 0.75rem; color: var(--accent-danger); margin-top: 4px; }
-
-        .btn { padding: 10px 20px; border-radius: 10px; font-size: 0.85rem; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; font-family: 'Inter', sans-serif; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
-        .btn-primary { background: linear-gradient(135deg, #6c5ce7, #a29bfe); color: #fff; }
-        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
-        .btn-primary:disabled { opacity: 0.6; transform: none; cursor: not-allowed; }
-        .btn-ghost { background: transparent; border: 1px solid var(--border-color); color: var(--text-body); }
-        .btn-ghost:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
-        .btn-danger { background: linear-gradient(135deg, #e17055, #d63031); color: #fff; }
-        .btn-danger:hover { opacity: 0.9; }
-
-        .self-badge { font-size: 0.65rem; padding: 2px 6px; background: rgba(0,184,148,0.1); color: var(--accent-success); border-radius: 6px; font-weight: 600; }
-        .empty-state { text-align: center; padding: 60px 20px; color: var(--text-body); }
-        .empty-state svg { margin: 0 auto 16px; display: block; opacity: 0.3; }
-    </style>
-
     {{-- Header --}}
-    <div class="admin-header">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 gap-4">
         <div>
-            <h3>User Management</h3>
-            <p style="font-size:0.8rem; margin-top:2px;">Manage staff accounts and roles</p>
+            <h3 class="text-lg font-bold text-[var(--text-primary)] tracking-tight">User Management</h3>
+            <p class="text-xs text-[var(--text-muted)] mt-1">Manage staff accounts and roles</p>
         </div>
-        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-            <div class="search-box">
-                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-                <input type="text" wire:model.live.debounce.300ms="search" placeholder="Search name, email, phone…">
+        <div class="flex items-center gap-3 flex-wrap">
+            <div class="relative w-full sm:max-w-xs">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-[var(--text-muted)]">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <circle cx="11" cy="11" r="8"/>
+                        <path d="M21 21l-4.35-4.35"/>
+                    </svg>
+                </span>
+                <input type="text" wire:model.live.debounce.300ms="search" class="w-full rounded border border-[var(--border-color)] bg-[var(--bg-card)] pl-9 pr-4 py-2 text-sm text-[var(--text-primary)] placeholder-[#8e8d89] focus:border-[#111111] focus:outline-none transition-all" placeholder="Search name, email, phone…">
             </div>
-            <button class="btn btn-primary" wire:click="openAddModal" id="btn-add-user">
-                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+            <button class="inline-flex items-center gap-1.5 rounded bg-[var(--text-primary)] hover:bg-[var(--text-secondary)] px-4 py-2 text-xs font-semibold text-[var(--bg-card)] transition-all cursor-pointer" wire:click="openAddModal" id="btn-add-user">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M12 5v14M5 12h14"/>
+                </svg>
                 Add User
             </button>
         </div>
     </div>
 
     {{-- Table --}}
-    <div class="panel-card">
+    <div class="rounded border border-[var(--border-color)] bg-[var(--bg-card)] shadow-sm overflow-hidden">
         @if($users->isEmpty())
-            <div class="empty-state">
-                <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-                <p>No users found.</p>
+            <div class="text-center py-12 px-4 space-y-3">
+                <svg class="h-12 w-12 mx-auto text-[var(--text-muted)]/60" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                </svg>
+                <p class="text-[var(--text-muted)] font-medium">No users found.</p>
             </div>
         @else
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>User</th>
-                        <th>Phone</th>
-                        <th>Email</th>
-                        <th>Role</th>
-                        <th style="text-align:right;">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($users as $user)
-                        @php
-                            $colors = ['6c5ce7','00b894','fd79a8','fdcb6e','74b9ff','a29bfe','e17055','00cec9'];
-                            $color = $colors[crc32($user->name) % count($colors)];
-                        @endphp
-                        <tr>
-                            <td>
-                                <div style="display:flex; align-items:center; gap:12px;">
-                                    <div class="user-avatar" style="background: linear-gradient(135deg, #{{ $color }}, #{{ $colors[(crc32($user->name)+1) % count($colors)] }});">
-                                        {{ strtoupper(substr($user->name, 0, 2)) }}
-                                    </div>
-                                    <div>
-                                        <div class="user-name">
-                                            {{ $user->name }}
-                                            @if($user->id === auth()->id())
-                                                <span class="self-badge">You</span>
-                                            @endif
-                                        </div>
-                                        <div class="user-phone">{{ $user->phone }}</div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>{{ $user->phone }}</td>
-                            <td>{{ $user->email }}</td>
-                            <td>
-                                @php $slug = $user->role?->slug ?? 'default'; @endphp
-                                <span class="role-badge {{ $slug }}">{{ $user->role?->name ?? 'No Role' }}</span>
-                            </td>
-                            <td style="text-align:right;">
-                                <button class="btn-icon" wire:click="openEditModal({{ $user->id }})" title="Edit user">
-                                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                                </button>
-                                <button class="btn-icon danger" wire:click="confirmDelete({{ $user->id }})" title="Delete user">
-                                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
-                                </button>
-                            </td>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-[var(--border-color)] bg-[var(--bg-primary)] text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] sticky top-0 z-10">
+                            <th class="p-4">User</th>
+                            <th class="p-4">Phone</th>
+                            <th class="p-4">Email</th>
+                            <th class="p-4">Role</th>
+                            <th class="p-4 text-right">Actions</th>
                         </tr>
-                    @endforeach
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody class="divide-y divide-[var(--border-color)] text-xs text-[var(--text-secondary)]">
+                        @foreach($users as $user)
+                            @php
+                                $colors = ['e1f3fe', 'edf3ec', 'fbf3db', 'fdebec'];
+                                $textColors = ['1f6c9f', '346538', '956400', '9f2f2d'];
+                                $index = crc32($user->name) % count($colors);
+                                $bgColor = $colors[$index];
+                                $textColor = $textColors[$index];
+                            @endphp
+                            <tr class="hover:bg-[var(--bg-card-hover)] transition-colors even:bg-[var(--bg-primary)]/50">
+                                <td class="p-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded flex items-center justify-center font-bold text-xs uppercase tracking-wider bg-[#{{ $bgColor }}] text-[#{{ $textColor }}]">
+                                            {{ strtoupper(substr($user->name, 0, 2)) }}
+                                        </div>
+                                        <div>
+                                            <div class="font-bold text-[var(--text-primary)] flex items-center gap-1.5">
+                                                {{ $user->name }}
+                                                @if($user->id === auth()->id())
+                                                    <span class="inline-flex rounded bg-[var(--success-bg)] px-1.5 py-0.5 text-[9px] font-bold text-[var(--success)] border border-[var(--border-color)]">You</span>
+                                                @endif
+                                            </div>
+                                            <div class="text-[10px] text-[var(--text-muted)] mt-0.5">{{ $user->phone }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="p-4 font-mono text-xs text-[var(--text-muted)]">{{ $user->phone }}</td>
+                                <td class="p-4 text-[var(--text-secondary)]">{{ $user->email }}</td>
+                                <td class="p-4">
+                                    @php 
+                                        $slug = $user->role?->slug ?? 'default'; 
+                                        $badgeClasses = [
+                                            'superadmin' => 'bg-[var(--warning-bg)] text-[var(--warning)] border border-[var(--border-color)]',
+                                            'admin' => 'bg-[var(--info-bg)] text-[var(--info)] border border-[var(--border-color)]',
+                                            'front_desk' => 'bg-[var(--success-bg)] text-[var(--success)] border border-[var(--border-color)]',
+                                            'housekeeping' => 'bg-[var(--info-bg)] text-[var(--info)] border border-[var(--border-color)]',
+                                            'default' => 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--border-color)]',
+                                        ];
+                                    @endphp
+                                    <span class="inline-flex rounded px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider {{ $badgeClasses[$slug] ?? $badgeClasses['default'] }}">
+                                        {{ $user->role?->name ?? 'No Role' }}
+                                    </span>
+                                </td>
+                                <td class="p-4 text-right">
+                                    <div class="flex items-center justify-end gap-2">
+                                        <button class="p-1.5 rounded text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer" wire:click="openEditModal({{ $user->id }})" title="Edit user">
+                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                        </button>
+                                        <button class="p-1.5 rounded text-[var(--text-muted)] hover:bg-[var(--danger-bg)] hover:text-[var(--danger)] transition-colors cursor-pointer" wire:click="confirmDelete({{ $user->id }})" title="Delete user">
+                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
         @endif
     </div>
 
     {{-- ── ADD USER MODAL ── --}}
     @if($showAddModal)
-        <div class="modal-backdrop" wire:click.self="closeAddModal">
-            <div class="modal-box">
-                <div class="modal-title">
-                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>
-                    Add New User
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs" wire:click.self="closeAddModal">
+            <div class="w-full max-w-md rounded bg-[var(--bg-card)] border border-[var(--border-color)] p-6 shadow-lg space-y-5">
+                <div class="flex items-center gap-2.5 border-b border-[var(--border-color)] pb-3">
+                    <svg class="h-5 w-5 text-[var(--info)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>
+                    <h3 class="text-sm font-bold text-[var(--text-primary)] uppercase tracking-wider">Add New User</h3>
                 </div>
 
-                <form wire:submit.prevent="createUser">
-                    <div class="form-group">
-                        <label class="form-label">Full Name</label>
-                        <input type="text" wire:model="name" class="form-input" placeholder="e.g. John Doe" autofocus>
-                        @error('name') <span class="form-error">{{ $message }}</span> @enderror
+                <form wire:submit.prevent="createUser" class="space-y-4">
+                    <div>
+                        <label class="block text-[10px] font-bold text-[var(--text-muted)] mb-1.5 uppercase tracking-wider">Full Name</label>
+                        <input type="text" wire:model="name" class="w-full rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-sm text-[var(--text-primary)] focus:border-[#111111] focus:outline-none transition-all" placeholder="e.g. John Doe" autofocus>
+                        @error('name') <span class="text-xs text-[var(--danger)] mt-1 block">{{ $message }}</span> @enderror
                     </div>
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-                        <div class="form-group">
-                            <label class="form-label">Phone Number</label>
-                            <input type="text" wire:model="phone" class="form-input" placeholder="08xxxxxxxxxx">
-                            @error('phone') <span class="form-error">{{ $message }}</span> @enderror
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-[10px] font-bold text-[var(--text-muted)] mb-1.5 uppercase tracking-wider">Phone Number</label>
+                            <input type="text" wire:model="phone" class="w-full rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-sm text-[var(--text-primary)] focus:border-[#111111] focus:outline-none transition-all" placeholder="08xxxxxxxxxx">
+                            @error('phone') <span class="text-xs text-[var(--danger)] mt-1 block">{{ $message }}</span> @enderror
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">Email Address</label>
-                            <input type="email" wire:model="email" class="form-input" placeholder="user@example.com">
-                            @error('email') <span class="form-error">{{ $message }}</span> @enderror
+                        <div>
+                            <label class="block text-[10px] font-bold text-[var(--text-muted)] mb-1.5 uppercase tracking-wider">Email Address</label>
+                            <input type="email" wire:model="email" class="w-full rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-sm text-[var(--text-primary)] focus:border-[#111111] focus:outline-none transition-all" placeholder="user@example.com">
+                            @error('email') <span class="text-xs text-[var(--danger)] mt-1 block">{{ $message }}</span> @enderror
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">Role</label>
-                        <select wire:model="roleId" class="form-input">
-                            <option value="">— Select role —</option>
+                    <div>
+                        <label class="block text-[10px] font-bold text-[var(--text-muted)] mb-1.5 uppercase tracking-wider">Role</label>
+                        <select wire:model="roleId" class="w-full rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-sm text-[var(--text-primary)] focus:border-[#111111] focus:outline-none transition-all cursor-pointer">
+                            <option value="">- Select role -</option>
                             @foreach($roles as $role)
                                 <option value="{{ $role->id }}">{{ $role->name }}</option>
                             @endforeach
                         </select>
-                        @error('roleId') <span class="form-error">{{ $message }}</span> @enderror
+                        @error('roleId') <span class="text-xs text-[var(--danger)] mt-1 block">{{ $message }}</span> @enderror
                     </div>
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-                        <div class="form-group">
-                            <label class="form-label">Password</label>
-                            <input type="password" wire:model="password" class="form-input" placeholder="Min. 8 characters">
-                            @error('password') <span class="form-error">{{ $message }}</span> @enderror
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-[10px] font-bold text-[var(--text-muted)] mb-1.5 uppercase tracking-wider">Password</label>
+                            <input type="password" wire:model="password" class="w-full rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-sm text-[var(--text-primary)] focus:border-[#111111] focus:outline-none transition-all" placeholder="Min. 8 chars">
+                            @error('password') <span class="text-xs text-[var(--danger)] mt-1 block">{{ $message }}</span> @enderror
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">Confirm Password</label>
-                            <input type="password" wire:model="password_confirmation" class="form-input" placeholder="Repeat password">
+                        <div>
+                            <label class="block text-[10px] font-bold text-[var(--text-muted)] mb-1.5 uppercase tracking-wider">Confirm Password</label>
+                            <input type="password" wire:model="password_confirmation" class="w-full rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-sm text-[var(--text-primary)] focus:border-[#111111] focus:outline-none transition-all" placeholder="Repeat password">
                         </div>
                     </div>
-                    <div class="modal-actions">
-                        <button type="button" class="btn btn-ghost" wire:click="closeAddModal">Cancel</button>
-                        <button type="submit" class="btn btn-primary" wire:loading.attr="disabled">
+                    <div class="flex justify-end gap-3 border-t border-[var(--border-color)] pt-4 mt-2">
+                        <button type="button" class="rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] transition-colors" wire:click="closeAddModal">Cancel</button>
+                        <button type="submit" class="rounded bg-[var(--text-primary)] hover:bg-[var(--text-secondary)] px-4 py-2 text-xs font-semibold text-[var(--bg-card)] transition-colors" wire:loading.attr="disabled">
                             <span wire:loading.remove>Create User</span>
                             <span wire:loading>Creating…</span>
                         </button>
@@ -285,49 +169,49 @@
 
     {{-- ── EDIT USER MODAL ── --}}
     @if($showEditModal)
-        <div class="modal-backdrop" wire:click.self="closeEditModal">
-            <div class="modal-box">
-                <div class="modal-title">
-                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                    Edit User
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs" wire:click.self="closeEditModal">
+            <div class="w-full max-w-md rounded bg-[var(--bg-card)] border border-[var(--border-color)] p-6 shadow-lg space-y-5">
+                <div class="flex items-center gap-2.5 border-b border-[var(--border-color)] pb-3">
+                    <svg class="h-5 w-5 text-[var(--info)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                    <h3 class="text-sm font-bold text-[var(--text-primary)] uppercase tracking-wider">Edit User</h3>
                 </div>
 
-                <form wire:submit.prevent="updateUser">
-                    <div class="form-group">
-                        <label class="form-label">Full Name</label>
-                        <input type="text" wire:model="editName" class="form-input">
-                        @error('editName') <span class="form-error">{{ $message }}</span> @enderror
+                <form wire:submit.prevent="updateUser" class="space-y-4">
+                    <div>
+                        <label class="block text-[10px] font-bold text-[var(--text-muted)] mb-1.5 uppercase tracking-wider">Full Name</label>
+                        <input type="text" wire:model="editName" class="w-full rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-sm text-[var(--text-primary)] focus:border-[#111111] focus:outline-none transition-all">
+                        @error('editName') <span class="text-xs text-[var(--danger)] mt-1 block">{{ $message }}</span> @enderror
                     </div>
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-                        <div class="form-group">
-                            <label class="form-label">Phone Number</label>
-                            <input type="text" wire:model="editPhone" class="form-input">
-                            @error('editPhone') <span class="form-error">{{ $message }}</span> @enderror
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-[10px] font-bold text-[var(--text-muted)] mb-1.5 uppercase tracking-wider">Phone Number</label>
+                            <input type="text" wire:model="editPhone" class="w-full rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-sm text-[var(--text-primary)] focus:border-[#111111] focus:outline-none transition-all">
+                            @error('editPhone') <span class="text-xs text-[var(--danger)] mt-1 block">{{ $message }}</span> @enderror
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">Email Address</label>
-                            <input type="email" wire:model="editEmail" class="form-input">
-                            @error('editEmail') <span class="form-error">{{ $message }}</span> @enderror
+                        <div>
+                            <label class="block text-[10px] font-bold text-[var(--text-muted)] mb-1.5 uppercase tracking-wider">Email Address</label>
+                            <input type="email" wire:model="editEmail" class="w-full rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-sm text-[var(--text-primary)] focus:border-[#111111] focus:outline-none transition-all">
+                            @error('editEmail') <span class="text-xs text-[var(--danger)] mt-1 block">{{ $message }}</span> @enderror
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">Role</label>
-                        <select wire:model="editRoleId" class="form-input">
-                            <option value="">— Select role —</option>
+                    <div>
+                        <label class="block text-[10px] font-bold text-[var(--text-muted)] mb-1.5 uppercase tracking-wider">Role</label>
+                        <select wire:model="editRoleId" class="w-full rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-sm text-[var(--text-primary)] focus:border-[#111111] focus:outline-none transition-all cursor-pointer">
+                            <option value="">- Select role -</option>
                             @foreach($roles as $role)
                                 <option value="{{ $role->id }}">{{ $role->name }}</option>
                             @endforeach
                         </select>
-                        @error('editRoleId') <span class="form-error">{{ $message }}</span> @enderror
+                        @error('editRoleId') <span class="text-xs text-[var(--danger)] mt-1 block">{{ $message }}</span> @enderror
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">New Password <span style="font-weight:400; opacity:0.6;">(leave blank to keep current)</span></label>
-                        <input type="password" wire:model="editPassword" class="form-input" placeholder="••••••••">
-                        @error('editPassword') <span class="form-error">{{ $message }}</span> @enderror
+                    <div>
+                        <label class="block text-[10px] font-bold text-[var(--text-muted)] mb-1.5 uppercase tracking-wider">New Password <span class="text-[9px] text-[var(--text-muted)] normal-case font-medium ml-1">(leave blank to keep current)</span></label>
+                        <input type="password" wire:model="editPassword" class="w-full rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-sm text-[var(--text-primary)] focus:border-[#111111] focus:outline-none transition-all" placeholder="••••••••">
+                        @error('editPassword') <span class="text-xs text-[var(--danger)] mt-1 block">{{ $message }}</span> @enderror
                     </div>
-                    <div class="modal-actions">
-                        <button type="button" class="btn btn-ghost" wire:click="closeEditModal">Cancel</button>
-                        <button type="submit" class="btn btn-primary" wire:loading.attr="disabled">
+                    <div class="flex justify-end gap-3 border-t border-[var(--border-color)] pt-4 mt-2">
+                        <button type="button" class="rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] transition-colors" wire:click="closeEditModal">Cancel</button>
+                        <button type="submit" class="rounded bg-[var(--text-primary)] hover:bg-[var(--text-secondary)] px-4 py-2 text-xs font-semibold text-[var(--bg-card)] transition-colors" wire:loading.attr="disabled">
                             <span wire:loading.remove>Save Changes</span>
                             <span wire:loading>Saving…</span>
                         </button>
@@ -339,19 +223,18 @@
 
     {{-- ── DELETE CONFIRM MODAL ── --}}
     @if($showDeleteModal)
-        <div class="modal-backdrop" wire:click.self="closeDeleteModal">
-            <div class="modal-box" style="max-width: 400px;">
-                <div class="modal-title" style="color: var(--accent-danger);">
-                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                    Confirm Delete
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs" wire:click.self="closeDeleteModal">
+            <div class="w-full max-w-sm rounded bg-[var(--bg-card)] border border-[var(--border-color)] p-6 shadow-lg space-y-4">
+                <div class="flex items-center gap-2 text-[var(--danger)] border-b border-[var(--border-color)] pb-3">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    <h3 class="text-sm font-bold uppercase tracking-wider">Confirm Delete</h3>
                 </div>
-                <p style="font-size:0.9rem; line-height:1.6;">
-                    Are you sure you want to delete <strong style="color:var(--text-heading);">{{ $deletingUserName }}</strong>?
-                    This action cannot be undone.
+                <p class="text-xs text-[var(--text-secondary)] leading-relaxed font-semibold">
+                    Are you sure you want to delete <strong class="text-[var(--text-primary)] font-bold">{{ $deletingUserName }}</strong>? This action cannot be undone.
                 </p>
-                <div class="modal-actions">
-                    <button class="btn btn-ghost" wire:click="closeDeleteModal">Cancel</button>
-                    <button class="btn btn-danger" wire:click="deleteUser" wire:loading.attr="disabled">
+                <div class="flex justify-end gap-3 border-t border-[var(--border-color)] pt-4 mt-2">
+                    <button class="rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] transition-colors" wire:click="closeDeleteModal">Cancel</button>
+                    <button class="rounded bg-[#9f2f2d] hover:bg-[#9f2f2d]/80 px-4 py-2 text-xs font-semibold text-white transition-colors cursor-pointer" wire:click="deleteUser" wire:loading.attr="disabled">
                         <span wire:loading.remove>Delete User</span>
                         <span wire:loading>Deleting…</span>
                     </button>
