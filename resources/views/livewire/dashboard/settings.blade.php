@@ -1,6 +1,6 @@
 <div>
     <div class="rounded border border-[var(--border-color)] bg-[var(--bg-card)] p-6 shadow-sm max-w-2xl">
-        <h3 class="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider mb-6 border-b border-[var(--border-color)] pb-3">System Configuration</h3>
+        <h3 class="text-base font-semibold text-[var(--text-primary)] mb-6 border-b border-[var(--border-color)] pb-3">System Configuration</h3>
         
         <div class="space-y-6 text-xs text-[var(--text-secondary)]">
             <div>
@@ -9,11 +9,11 @@
                 
                 <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-[10px] font-bold text-[var(--text-muted)] mb-1.5 uppercase tracking-wider">Hotel Brand Name</label>
+                        <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">Hotel Brand Name</label>
                         <input type="text" class="w-full rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] px-4 py-2 text-xs text-[var(--text-muted)] focus:outline-none opacity-80 cursor-not-allowed" value="Grand Central & Resort Hotel" disabled>
                     </div>
                     <div>
-                        <label class="block text-[10px] font-bold text-[var(--text-muted)] mb-1.5 uppercase tracking-wider">Currency Code</label>
+                        <label class="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">Currency Code</label>
                         <input type="text" class="w-full rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] px-4 py-2 text-xs text-[var(--text-muted)] focus:outline-none opacity-80 cursor-not-allowed" value="IDR (Rp)" disabled>
                     </div>
                 </div>

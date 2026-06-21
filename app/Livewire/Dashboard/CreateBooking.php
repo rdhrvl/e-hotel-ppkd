@@ -47,34 +47,77 @@ class CreateBooking extends Component
     public string $boxIssuedBy = '';
     public string $boxDate = '';
 
+    public array $cartItems = [];
+
+    // Upfront Payment Properties
+    public bool $payUpfront = true;
+    public string $paymentMethod = 'cash';
+
     protected $queryString = ['roomId' => ['as' => 'room_id']];
 
     public function mount(): void
     {
-        if (!$this->roomId) {
-            $this->redirect(route('room-availability'));
-            return;
-        }
-
-        $this->room = Room::with('roomType')->find($this->roomId);
-        if (!$this->room || !$this->room->isAvailable()) {
-            $this->redirect(route('room-availability'));
-            return;
-        }
-
         $this->receptionist = auth()->user()->name;
         $this->boxIssuedBy = auth()->user()->name;
         $this->arrivalDate = now()->format('Y-m-d');
         $this->departureDate = now()->addDay()->format('Y-m-d');
         $this->arrivalTime = now()->format('H:i');
         $this->boxDate = now()->format('Y-m-d');
+
+        if ($this->roomId) {
+            $this->room = Room::with('roomType')->find($this->roomId);
+            if (!$this->room || !$this->room->isAvailable()) {
+                $this->redirect(route('room-availability'));
+                return;
+            }
+            $this->cartItems = [
+                [
+                    'room_id' => $this->roomId,
+                    'room' => $this->room,
+                    'extras' => []
+                ]
+            ];
+            $this->noOfRoom = 1;
+        } else {
+            $cart = session('cart', []);
+            if (empty($cart)) {
+                $this->redirect(route('room-availability'));
+                return;
+            }
+
+            $allServices = \App\Models\Service::all();
+            foreach ($cart as $item) {
+                $roomObj = Room::with('roomType')->find($item['room_id']);
+                if ($roomObj && $roomObj->isAvailable()) {
+                    $extrasList = [];
+                    foreach ($item['extras'] as $serviceId) {
+                        $serviceItem = $allServices->firstWhere('id', $serviceId);
+                        if ($serviceItem) {
+                            $extrasList[] = $serviceItem;
+                        }
+                    }
+                    $this->cartItems[] = [
+                        'room_id' => $item['room_id'],
+                        'room' => $roomObj,
+                        'extras' => $extrasList
+                    ];
+                }
+            }
+
+            if (empty($this->cartItems)) {
+                $this->redirect(route('room-availability'));
+                return;
+            }
+
+            $this->noOfRoom = count($this->cartItems);
+        }
     }
 
     public function confirmBooking(BookingService $bookingService)
     {
         $this->validate([
             'guestName' => 'required|string|max:255',
-            'arrivalDate' => 'required|date|after_or_equal:today',
+            'arrivalDate' => 'required|date',
             'departureDate' => 'required|date|after:arrivalDate',
             'guestKtp' => 'required|string|max:50',
             'guestPhone' => 'required|string|max:20',
@@ -82,43 +125,124 @@ class CreateBooking extends Component
         ]);
 
         try {
-            // Check room availability
-            if (!$bookingService->isRoomAvailable($this->roomId, $this->arrivalDate, $this->departureDate)) {
-                $this->addError('roomId', 'The selected room is not available for these dates.');
-                return;
+            foreach ($this->cartItems as $item) {
+                if (!$bookingService->isRoomAvailable($item['room_id'], $this->arrivalDate, $this->departureDate)) {
+                    $this->addError('roomId', "Room {$item['room']->room_number} is not available for these dates.");
+                    return;
+                }
             }
 
-            // Create booking using existing service
-            $booking = $bookingService->createBooking([
-                'guest_name' => $this->guestName,
-                'guest_id' => $this->guestKtp,
-                'guest_phone' => $this->guestPhone,
-                'guest_email' => $this->guestEmail,
-                'guest_address' => $this->guestAddress,
-                'room_id' => $this->roomId,
-                'check_in_date' => $this->arrivalDate,
-                'check_out_date' => $this->departureDate,
-                'number_of_guests' => $this->noOfPerson,
-            ]);
+            \DB::transaction(function () use ($bookingService) {
+                foreach ($this->cartItems as $item) {
+                    $booking = $bookingService->createBooking([
+                        'guest_name' => $this->guestName,
+                        'guest_id' => $this->guestKtp,
+                        'guest_phone' => $this->guestPhone,
+                        'guest_email' => $this->guestEmail,
+                        'guest_address' => $this->guestAddress,
+                        'room_id' => $item['room_id'],
+                        'check_in_date' => $this->arrivalDate,
+                        'check_out_date' => $this->departureDate,
+                        'number_of_guests' => $this->noOfPerson,
+                    ]);
 
-            // Save notes/time details to room notes if applicable
-            $notesText = 'Arrival Time: ' . $this->arrivalTime . '. Profession: ' . $this->guestProfession . '. Member No: ' . $this->guestMemberNo;
-            if ($this->additionalNotes) {
-                $notesText .= '. Notes: ' . $this->additionalNotes;
-            }
-            if ($this->boxNo) {
-                $notesText .= '. Safety Box: ' . $this->boxNo;
-            }
+                    $bookingUpfrontAmount = 0.0;
+                    if ($this->payUpfront) {
+                        $nights = (int) Carbon::parse($this->arrivalDate)->diffInDays(Carbon::parse($this->departureDate));
+                        $nights = max(1, $nights);
+                        $roomCharges = (float)$booking->room->effective_price * $nights;
+                        $extrasTotal = 0.0;
+                        foreach ($item['extras'] as $extraService) {
+                            $extrasTotal += (float)$extraService->price;
+                        }
+                        $bookingUpfrontAmount = $roomCharges + $extrasTotal;
+                    }
 
-            $booking->room->update([
-                'notes' => $notesText
-            ]);
+                    foreach ($item['extras'] as $extraService) {
+                        $bill = $booking->guestBill;
+                        if ($bill) {
+                            \App\Models\BookingItem::create([
+                                'booking_id' => $booking->id,
+                                'service_id' => $extraService->id,
+                                'quantity' => 1,
+                                'price' => $extraService->price,
+                            ]);
+                            $bill->increment('total_extra_charges', $extraService->price);
+                        }
+                    }
 
-            session()->flash('success', 'Booking for Room ' . $this->room->room_number . ' confirmed successfully!');
+                    if ($this->payUpfront && $bookingUpfrontAmount > 0) {
+                        $bill = $booking->guestBill;
+                        if ($bill) {
+                            $bill->update([
+                                'deposit_amount' => $bookingUpfrontAmount,
+                            ]);
+                            \App\Models\Payment::create([
+                                'booking_id' => $booking->id,
+                                'amount' => $bookingUpfrontAmount,
+                                'method' => $this->paymentMethod === 'bank_transfer' ? 'transfer' : $this->paymentMethod,
+                                'status' => 'paid',
+                            ]);
+                        }
+                    }
+
+                    $notesText = 'Arrival Time: ' . $this->arrivalTime . '. Profession: ' . $this->guestProfession . '. Member No: ' . $this->guestMemberNo;
+                    if ($this->additionalNotes) {
+                        $notesText .= '. Notes: ' . $this->additionalNotes;
+                    }
+                    if ($this->boxNo) {
+                        $notesText .= '. Safety Box: ' . $this->boxNo;
+                    }
+
+                    $booking->room->update([
+                        'notes' => $notesText
+                    ]);
+                }
+            });
+
+            session()->forget('cart');
+
+            session()->flash('success', 'Bookings confirmed successfully!');
             return redirect()->route('room-availability');
         } catch (\Exception $e) {
             $this->addError('roomId', $e->getMessage());
         }
+    }
+
+    public function calculateNights(): int
+    {
+        try {
+            $nights = (int) Carbon::parse($this->arrivalDate)->diffInDays(Carbon::parse($this->departureDate));
+            return max(1, $nights);
+        } catch (\Exception $e) {
+            return 1;
+        }
+    }
+
+    public function calculateRoomsTotal(): float
+    {
+        $total = 0;
+        $nights = $this->calculateNights();
+        foreach ($this->cartItems as $item) {
+            $total += (float)$item['room']->effective_price * $nights;
+        }
+        return $total;
+    }
+
+    public function calculateExtrasTotal(): float
+    {
+        $total = 0;
+        foreach ($this->cartItems as $item) {
+            foreach ($item['extras'] as $extra) {
+                $total += (float)$extra->price;
+            }
+        }
+        return $total;
+    }
+
+    public function calculateGrandTotal(): float
+    {
+        return $this->calculateRoomsTotal() + $this->calculateExtrasTotal();
     }
 
     public function render(): \Illuminate\Contracts\View\View

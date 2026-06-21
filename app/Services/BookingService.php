@@ -136,15 +136,17 @@ class BookingService
                 throw new InvalidArgumentException('Only pending or confirmed bookings can be checked in.');
             }
 
+            if ($booking->room->status !== 'ready') {
+                throw new InvalidArgumentException('Room status must be ready (Ready for Check-In) before check-in.');
+            }
+
             $oldBooking = $booking->toArray();
             $booking->update(['status' => 'checked_in']);
             $booking->room->update(['status' => 'occupied']);
 
             $bill = $booking->guestBill;
             if ($bill) {
-                $bill->update([
-                    'deposit_amount' => $depositAmount,
-                ]);
+                $bill->increment('deposit_amount', $depositAmount);
 
                 if ($depositAmount > 0) {
                     Payment::create([
@@ -258,7 +260,7 @@ class BookingService
                 'room_id' => $booking->room_id,
                 'staff_id' => $housekeeper ? $housekeeper->id : 1, // fallback
                 'schedule_date' => Carbon::now()->toDateString(),
-                'status' => 'scheduled',
+                'status' => 'in_progress',
             ]);
 
             $this->logActivity(

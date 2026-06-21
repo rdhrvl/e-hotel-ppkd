@@ -8,11 +8,14 @@ use App\Models\Service;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 #[Layout('layouts.app')]
 #[Title('Service Management')]
 class Services extends Component
 {
+    use WithPagination;
+
     // List
     public string $search = '';
 
@@ -42,18 +45,41 @@ class Services extends Component
         'laundry'   => 'Laundry',
     ];
 
+    public string $sortField = 'name';
+    public string $sortDirection = 'asc';
+
+    public function sortBy(string $field): void
+    {
+        if ($this->sortField === $field) {
+            $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            $this->sortField = $field;
+            $this->sortDirection = 'asc';
+        }
+    }
+
+    public function updatingSearch(): void
+    {
+        $this->resetPage();
+    }
+
     public function render(): \Illuminate\Contracts\View\View
     {
         if (! auth()->user()->isAdmin()) {
             abort(403, 'Unauthorized access.');
         }
 
-        $services = Service::when($this->search, function ($query) {
+        $servicesQuery = Service::when($this->search, function ($query) {
                 $query->where('name', 'like', '%' . $this->search . '%');
             })
-            ->orderBy('type')
-            ->orderBy('name')
-            ->get();
+            ->orderBy($this->sortField, $this->sortDirection);
+
+        $services = $servicesQuery->paginate(10);
+
+        if ($this->getPage() > $services->lastPage()) {
+            $this->setPage(max(1, $services->lastPage()));
+            $services = $servicesQuery->paginate(10);
+        }
 
         return view('livewire.dashboard.services', [
             'services'     => $services,

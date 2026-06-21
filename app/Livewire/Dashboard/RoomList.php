@@ -13,10 +13,13 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
+
 #[Layout('layouts.app')]
 #[Title('Room Availability')]
 class RoomList extends Component
 {
+    public int $page = 1;
+
     // Filters
     public string $filterType = '';
     public string $filterStatus = '';
@@ -25,6 +28,11 @@ class RoomList extends Component
 
     // Selected Room Details
     public ?int $selectedRoomId = null;
+
+    // Cart details
+    public array $cart = [];
+    public array $modalExtras = [];
+    public bool $isCartEditMode = false;
 
     // Booking form fields (used inline in the sidebar panel)
     public string $guestName = '';
@@ -60,13 +68,24 @@ class RoomList extends Component
         // Default check-in/out to today and tomorrow
         $this->checkInDate = now()->format('Y-m-d');
         $this->checkOutDate = now()->addDay()->format('Y-m-d');
+        $this->cart = session('cart', []);
     }
 
     public function selectRoom(int $roomId): void
     {
         $this->selectedRoomId = $roomId;
-        $room = Room::find($roomId);
+        $room = Room::with('roomType')->find($roomId);
         if ($room) {
+            $this->cart = session('cart', []);
+            $cartItem = collect($this->cart)->firstWhere('room_id', $roomId);
+            if ($cartItem) {
+                $this->isCartEditMode = true;
+                $this->modalExtras = $cartItem['extras'] ?? [];
+            } else {
+                $this->isCartEditMode = false;
+                $this->modalExtras = [];
+            }
+
             $booking = Booking::where('room_id', $roomId)
                 ->whereIn('status', ['confirmed', 'checked_in'])
                 ->first();
@@ -98,12 +117,106 @@ class RoomList extends Component
         }
     }
 
+    public function updatingFilterType(): void
+    {
+        $this->page = 1;
+    }
+
+    public function updatingFilterStatus(): void
+    {
+        $this->page = 1;
+    }
+
+    public function updatingFilterBedType(): void
+    {
+        $this->page = 1;
+    }
+
+    public function updatingFilterBreakfast(): void
+    {
+        $this->page = 1;
+    }
+
+    public function gotoPage(int $page): void
+    {
+        $this->page = $page;
+    }
+
+    public function previousPage(): void
+    {
+        if ($this->page > 1) {
+            $this->page--;
+        }
+    }
+
+    public function nextPage(int $totalPages): void
+    {
+        if ($this->page < $totalPages) {
+            $this->page++;
+        }
+    }
+
+    public function toggleStatusFilter(string $status): void
+    {
+        if ($this->filterStatus === $status) {
+            $this->filterStatus = '';
+        } else {
+            $this->filterStatus = $status;
+        }
+        $this->page = 1;
+    }
+
     public function render(): \Illuminate\Contracts\View\View
     {
         $branchId = session('selected_branch_id', 1);
 
+        // Fetch counts for all rooms in the branch under current type/bed/breakfast filters (excluding status filter)
+        $baseRoomsQuery = Room::where('branch_id', $branchId)
+            ->when($this->filterType, fn($q) => $q->where('room_type_id', $this->filterType))
+            ->when($this->filterBedType, function($q) {
+                $q->whereHas('roomType', fn($sub) => $sub->where('bed_type', $this->filterBedType));
+            })
+            ->when($this->filterBreakfast !== '', function($q) {
+                $q->whereHas('roomType', fn($sub) => $sub->where('has_breakfast', $this->filterBreakfast === '1'));
+            });
+
+        $totalRoomsCount = (clone $baseRoomsQuery)->count();
+        $availableRoomsCount = (clone $baseRoomsQuery)->where('status', 'available')->count();
+        $reservedRoomsCount = (clone $baseRoomsQuery)->where('status', 'reserved')->count();
+        $occupiedRoomsCount = (clone $baseRoomsQuery)->where('status', 'occupied')->count();
+
+        // Fetch distinct floors matching the criteria
+        $allFloors = Room::where('branch_id', $branchId)
+            ->when($this->filterType, fn($q) => $q->where('room_type_id', $this->filterType))
+            ->when($this->filterStatus, fn($q) => $q->where('status', $this->filterStatus))
+            ->when($this->filterBedType, function($q) {
+                $q->whereHas('roomType', fn($sub) => $sub->where('bed_type', $this->filterBedType));
+            })
+            ->when($this->filterBreakfast !== '', function($q) {
+                $q->whereHas('roomType', fn($sub) => $sub->where('has_breakfast', $this->filterBreakfast === '1'));
+            })
+            ->select('floor')
+            ->distinct()
+            ->orderBy('floor')
+            ->pluck('floor')
+            ->values();
+
+        $totalItems = $allFloors->count();
+        $itemsPerPage = 2;
+        $totalPages = (int) ceil($totalItems / $itemsPerPage);
+
+        // Auto-correct current page if data changes
+        if ($this->page > $totalPages) {
+            $this->page = max(1, $totalPages);
+        }
+
+        // Get the floors for the current page
+        $offset = ($this->page - 1) * $itemsPerPage;
+        $floorNumbers = $allFloors->slice($offset, $itemsPerPage)->toArray();
+
         $rooms = Room::with(['roomType', 'activeBooking.guest'])
             ->where('branch_id', $branchId)
+            ->whereIn('floor', $floorNumbers)
             ->when($this->filterType, fn($q) => $q->where('room_type_id', $this->filterType))
             ->when($this->filterStatus, fn($q) => $q->where('status', $this->filterStatus))
             ->when($this->filterBedType, function($q) {
@@ -116,11 +229,41 @@ class RoomList extends Component
             ->get();
 
         $roomTypes = RoomType::all();
-        $services = Service::all();
+        $services = Service::where('type', '!=', 'f_and_b')->get();
 
         $selectedRoom = $this->selectedRoomId ? Room::with(['roomType', 'activeBooking.guest'])->find($this->selectedRoomId) : null;
         $checkInBooking = $this->bookingIdToCheckIn ? Booking::with('guest')->find($this->bookingIdToCheckIn) : null;
         $checkOutBooking = $this->bookingIdToCheckOut ? Booking::with(['guestBill', 'bookingItems.service', 'guest'])->find($this->bookingIdToCheckOut) : null;
+
+        // Resolve cart items
+        $this->cart = session('cart', []);
+        $cartItems = [];
+        $grandTotal = 0;
+        foreach ($this->cart as $item) {
+            $roomItem = Room::with('roomType')->find($item['room_id']);
+            if ($roomItem) {
+                $roomPrice = (float)($roomItem->price ?: $roomItem->roomType->base_price);
+                $extrasList = [];
+                $extrasCost = 0;
+                foreach ($item['extras'] as $serviceId) {
+                    $serviceItem = $services->firstWhere('id', $serviceId);
+                    if ($serviceItem) {
+                        $extrasList[] = $serviceItem;
+                        $extrasCost += (float)$serviceItem->price;
+                    }
+                }
+                $totalItemCost = $roomPrice + $extrasCost;
+                $grandTotal += $totalItemCost;
+                
+                $cartItems[] = [
+                    'room' => $roomItem,
+                    'extras' => $extrasList,
+                    'room_price' => $roomPrice,
+                    'extras_cost' => $extrasCost,
+                    'total_cost' => $totalItemCost,
+                ];
+            }
+        }
 
         return view('livewire.dashboard.room-list', [
             'rooms' => $rooms,
@@ -129,6 +272,16 @@ class RoomList extends Component
             'selectedRoom' => $selectedRoom,
             'checkInBooking' => $checkInBooking,
             'checkOutBooking' => $checkOutBooking,
+            'totalItems' => $totalItems,
+            'itemsPerPage' => $itemsPerPage,
+            'totalPages' => $totalPages,
+            'currentPage' => $this->page,
+            'totalRoomsCount' => $totalRoomsCount,
+            'availableRoomsCount' => $availableRoomsCount,
+            'reservedRoomsCount' => $reservedRoomsCount,
+            'occupiedRoomsCount' => $occupiedRoomsCount,
+            'cartItems' => $cartItems,
+            'grandTotal' => $grandTotal,
         ]);
     }
 
@@ -139,6 +292,83 @@ class RoomList extends Component
         $room->update(['status' => $status]);
         session()->flash('success', "Room {$room->room_number} status updated to {$status}.");
         $this->selectRoom($roomId);
+    }
+
+    // CART OPERATIONS
+    public function addToCart(): void
+    {
+        if (!$this->selectedRoomId) return;
+
+        $room = Room::findOrFail($this->selectedRoomId);
+        if (!$room->isAvailable()) {
+            session()->flash('error', "Room {$room->room_number} is not available.");
+            return;
+        }
+
+        $this->cart = session('cart', []);
+        
+        $exists = collect($this->cart)->contains('room_id', $this->selectedRoomId);
+        if ($exists) {
+            session()->flash('error', "Room {$room->room_number} is already in the cart.");
+            return;
+        }
+
+        $this->cart[] = [
+            'room_id' => $this->selectedRoomId,
+            'extras' => $this->modalExtras,
+        ];
+
+        session(['cart' => $this->cart]);
+        $this->selectedRoomId = null;
+        session()->flash('success', "Room {$room->room_number} added to cart.");
+    }
+
+    public function updateCart(): void
+    {
+        if (!$this->selectedRoomId) return;
+
+        $room = Room::findOrFail($this->selectedRoomId);
+        $this->cart = session('cart', []);
+
+        foreach ($this->cart as $key => $item) {
+            if ($item['room_id'] == $this->selectedRoomId) {
+                $this->cart[$key]['extras'] = $this->modalExtras;
+                break;
+            }
+        }
+
+        session(['cart' => $this->cart]);
+        $this->selectedRoomId = null;
+        session()->flash('success', "Room {$room->room_number} cart items updated.");
+    }
+
+    public function removeFromCart(?int $roomId = null): void
+    {
+        $idToRemove = $roomId ?: $this->selectedRoomId;
+        if (!$idToRemove) return;
+
+        $room = Room::find($idToRemove);
+        $this->cart = session('cart', []);
+
+        $this->cart = collect($this->cart)->reject(function ($item) use ($idToRemove) {
+            return $item['room_id'] == $idToRemove;
+        })->values()->toArray();
+
+        session(['cart' => $this->cart]);
+        
+        if ($idToRemove == $this->selectedRoomId) {
+            $this->selectedRoomId = null;
+        }
+
+        $roomNumber = $room ? $room->room_number : '';
+        session()->flash('success', "Room {$roomNumber} removed from cart.");
+    }
+
+    public function clearCart(): void
+    {
+        session()->forget('cart');
+        $this->cart = [];
+        session()->flash('success', "Cart cleared.");
     }
 
     // BOOKING OPERATIONS

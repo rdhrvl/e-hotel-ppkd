@@ -10,11 +10,14 @@ use Illuminate\Support\Facades\Hash;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 #[Layout('layouts.app')]
 #[Title('User Management')]
 class Users extends Component
 {
+    use WithPagination;
+
     // List filters
     public string $search = '';
 
@@ -41,6 +44,24 @@ class Users extends Component
     public ?int $deletingUserId = null;
     public string $deletingUserName = '';
 
+    public string $sortField = 'name';
+    public string $sortDirection = 'asc';
+
+    public function sortBy(string $field): void
+    {
+        if ($this->sortField === $field) {
+            $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            $this->sortField = $field;
+            $this->sortDirection = 'asc';
+        }
+    }
+
+    public function updatingSearch(): void
+    {
+        $this->resetPage();
+    }
+
     public function render(): \Illuminate\Contracts\View\View
     {
         // Only admins and superadmins can manage users
@@ -48,7 +69,7 @@ class Users extends Component
             abort(403, 'Unauthorized access.');
         }
 
-        $users = User::with('role')
+        $usersQuery = User::with('role')
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
                     $q->where('name', 'like', '%' . $this->search . '%')
@@ -56,8 +77,14 @@ class Users extends Component
                       ->orWhere('phone', 'like', '%' . $this->search . '%');
                 });
             })
-            ->orderBy('name')
-            ->get();
+            ->orderBy($this->sortField, $this->sortDirection);
+
+        $users = $usersQuery->paginate(10);
+
+        if ($this->getPage() > $users->lastPage()) {
+            $this->setPage(max(1, $users->lastPage()));
+            $users = $usersQuery->paginate(10);
+        }
 
         $roles = Role::orderBy('name')->get();
 

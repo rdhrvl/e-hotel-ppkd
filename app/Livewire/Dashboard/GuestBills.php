@@ -48,7 +48,7 @@ class GuestBills extends Component
             ->orderBy('updated_at', 'desc')
             ->get();
 
-        $services = Service::all();
+        $services = Service::where('type', '!=', 'f_and_b')->get();
 
         return view('livewire.dashboard.guest-bills', [
             'bookings' => $bookings,

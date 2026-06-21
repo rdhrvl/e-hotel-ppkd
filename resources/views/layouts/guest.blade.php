@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ $title ?? 'Welcome' }} - HMS</title>
+    <title>{{ $title ?? 'Welcome' }} - PPKD Hotel</title>
 
     {{-- Google Fonts: Outfit --}}
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -51,7 +51,7 @@
     <div class="guest-wrapper">
         <div class="guest-brand flex flex-col items-center justify-center mb-6">
             <img src="/img/logo-ppkd.png" alt="PPKD Logo" class="h-16 w-auto mb-3">
-            <h1 class="text-2xl font-bold tracking-tight text-[var(--text-primary)]">HMS E-DN</h1>
+            <h1 class="text-2xl font-bold tracking-tight text-[var(--text-primary)]">PPKD Hotel</h1>
             <p class="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)] mt-1">Hotel Management System</p>
         </div>
 

@@ -421,6 +421,13 @@
             @php
                 $bill = $booking->guestBill;
                 $grandTotal = $bill->total_room_charges + $bill->total_extra_charges;
+                
+                $upfrontPayment = $booking->payments->first(function($p) use ($booking) {
+                    return $p->created_at <= $booking->created_at->addMinutes(5); 
+                });
+                $upfrontAmount = $upfrontPayment ? (float)$upfrontPayment->amount : 0.0;
+                $otherPrepaid = (float)$bill->deposit_amount - $upfrontAmount;
+                
                 $balance = $grandTotal - $bill->deposit_amount - $bill->paid_amount;
             @endphp
             <table class="summary-table">
@@ -436,10 +443,18 @@
                     <td><strong>Grand Total:</strong></td>
                     <td style="text-align: right; font-weight: 700;">Rp {{ number_format($grandTotal) }}</td>
                 </tr>
-                <tr>
-                    <td style="color: #10b981;"><strong>Security Deposit:</strong></td>
-                    <td style="text-align: right; color: #10b981;">- Rp {{ number_format($bill->deposit_amount) }}</td>
-                </tr>
+                @if($upfrontAmount > 0)
+                    <tr>
+                        <td style="color: #10b981;"><strong>Upfront Payment:</strong></td>
+                        <td style="text-align: right; color: #10b981;">- Rp {{ number_format($upfrontAmount) }}</td>
+                    </tr>
+                @endif
+                @if($otherPrepaid > 0)
+                    <tr>
+                        <td style="color: #10b981;"><strong>Security Deposit:</strong></td>
+                        <td style="text-align: right; color: #10b981;">- Rp {{ number_format($otherPrepaid) }}</td>
+                    </tr>
+                @endif
                 @if($bill->paid_amount > 0)
                     <tr>
                         <td style="color: #10b981;"><strong>Amount Paid:</strong></td>

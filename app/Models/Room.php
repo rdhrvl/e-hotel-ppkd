@@ -13,6 +13,24 @@ class Room extends Model
 {
     use HasFactory;
 
+    protected static function booted(): void
+    {
+        static::updated(function (Room $room) {
+            if ($room->wasChanged('status')) {
+                try {
+                    app(\App\Services\NotificationService::class)->handleRoomStatusChange(
+                        $room,
+                        auth()->user(),
+                        $room->status,
+                        $room->notes
+                    );
+                } catch (\Exception $e) {
+                    \Log::error('Failed to trigger room status alert: ' . $e->getMessage());
+                }
+            }
+        });
+    }
+
     protected $fillable = [
         'room_number',
         'room_type_id',

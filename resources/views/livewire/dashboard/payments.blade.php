@@ -1,8 +1,7 @@
 <div>
     {{-- Search Bar --}}
-    <div class="rounded border border-[var(--border-color)] bg-[var(--bg-card)] p-5 mb-8 shadow-sm">
-        <label class="block text-[10px] font-bold text-[var(--text-muted)] mb-1.5 uppercase tracking-wider">Search Payments</label>
-        <input type="text" wire:model.live.debounce.300ms="search" class="w-full rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-sm text-[var(--text-primary)] placeholder-[#8e8d89] focus:border-[#111111] focus:outline-none transition-all" placeholder="Search by guest name, method, or status...">
+    <div class="mb-6">
+        <input type="text" wire:model.live.debounce.300ms="search" class="w-full rounded-[var(--radius-sm)] border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-[var(--accent-primary)] focus:shadow-[0_0_0_3px_rgba(37,99,235,0.1)] focus:outline-none transition-all" placeholder="Search by guest name, method, or status...">
     </div>
 
     {{-- Payments List Table --}}
@@ -10,7 +9,7 @@
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
                 <thead>
-                    <tr class="border-b border-[var(--border-color)] bg-[var(--bg-primary)] text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] sticky top-0 z-10">
+                    <tr class="border-b-2 border-[var(--border-color)] bg-[var(--bg-secondary)] text-xs font-semibold text-[var(--text-muted)] sticky top-0 z-10">
                         <th class="p-4">Date & Time</th>
                         <th class="p-4">Guest</th>
                         <th class="p-4">Room</th>
@@ -38,11 +37,11 @@
                             </td>
                             <td class="p-4">
                                 @if($payment->status === 'paid' || $payment->status === 'confirmed')
-                                    <span class="inline-flex rounded bg-[var(--success-bg)] px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-[var(--success)] border border-[var(--border-color)]">Paid</span>
+                                    <span class="inline-flex rounded-[var(--radius-sm)] bg-[var(--success-bg)] px-2.5 py-0.5 text-xs font-semibold text-[var(--success)] border border-[var(--border-color)]">Paid</span>
                                 @elseif($payment->status === 'pending')
-                                    <span class="inline-flex rounded bg-[var(--warning-bg)] px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-[var(--warning)] border border-[var(--border-color)]">Pending</span>
+                                    <span class="inline-flex rounded-[var(--radius-sm)] bg-[var(--warning-bg)] px-2.5 py-0.5 text-xs font-semibold text-[var(--warning)] border border-[var(--border-color)]">Pending</span>
                                 @else
-                                    <span class="inline-flex rounded bg-[var(--danger-bg)] px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-[var(--danger)] border border-[var(--border-color)]">Failed</span>
+                                    <span class="inline-flex rounded-[var(--radius-sm)] bg-[var(--danger-bg)] px-2.5 py-0.5 text-xs font-semibold text-[var(--danger)] border border-[var(--border-color)]">Failed</span>
                                 @endif
                             </td>
                             <td class="p-4 text-right font-bold text-[var(--text-primary)] font-mono">

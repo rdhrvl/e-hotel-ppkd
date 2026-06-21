@@ -15,11 +15,16 @@ class Service extends Model
     protected $fillable = [
         'name',
         'price',
+        'description',
         'type', // 'extra_bed', 'f_and_b', 'laundry', 'general'
+        'category',
+        'is_active',
+        'image_path',
     ];
 
     protected $casts = [
         'price' => 'decimal:2',
+        'is_active' => 'boolean',
     ];
 
     /** @return BelongsToMany<Booking, $this> */

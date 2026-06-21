@@ -19,11 +19,13 @@ class RoomType extends Model
         'description',
         'bed_type',
         'has_breakfast',
+        'included_amenities',
     ];
 
     protected $casts = [
         'base_price' => 'decimal:2',
         'has_breakfast' => 'boolean',
+        'included_amenities' => 'array',
     ];
 
     /** @return HasMany<Room, $this> */

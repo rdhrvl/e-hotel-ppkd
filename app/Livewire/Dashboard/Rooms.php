@@ -7,14 +7,18 @@ namespace App\Livewire\Dashboard;
 use App\Models\Room;
 use App\Models\RoomType;
 use App\Models\Branch;
+use App\Models\Service;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 #[Layout('layouts.app')]
 #[Title('Room Management')]
 class Rooms extends Component
 {
+    use WithPagination;
+
     // ── Add Room ──────────────────────────────────────────────────────
     public string $roomNumber = '';
     public ?int $roomTypeId = null;
@@ -39,6 +43,7 @@ class Rooms extends Component
     public int $typeCapacity = 2;
     public string $typeBedType = 'King';
     public bool $typeHasBreakfast = false;
+    public array $typeIncludedAmenities = [];
 
     // ── Edit Room Type ────────────────────────────────────────────────
     public bool $showEditTypeModal = false;
@@ -49,6 +54,24 @@ class Rooms extends Component
     public int $editTypeCapacity = 2;
     public string $editTypeBedType = 'King';
     public bool $editTypeHasBreakfast = false;
+    public array $editTypeIncludedAmenities = [];
+
+    // ── Extras (Services) CRUD ─────────────────────────────────────────
+    public string $extraName = '';
+    public float $extraPrice = 0;
+    public string $extraType = 'general';
+    public string $extraDescription = '';
+
+    public bool $showEditExtraModal = false;
+    public ?int $editingExtraId = null;
+    public string $editExtraName = '';
+    public float $editExtraPrice = 0;
+    public string $editExtraType = 'general';
+    public string $editExtraDescription = '';
+
+    public bool $showDeleteExtraModal = false;
+    public ?int $deletingExtraId = null;
+    public string $deletingExtraName = '';
 
     // ── Delete Confirm ────────────────────────────────────────────────
     public bool $showDeleteRoomModal = false;
@@ -58,6 +81,19 @@ class Rooms extends Component
     public bool $showDeleteTypeModal = false;
     public ?int $deletingTypeId = null;
     public string $deletingTypeName = '';
+
+    public string $sortField = 'room_number';
+    public string $sortDirection = 'asc';
+
+    public function sortBy(string $field): void
+    {
+        if ($this->sortField === $field) {
+            $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            $this->sortField = $field;
+            $this->sortDirection = 'asc';
+        }
+    }
 
     protected $listeners = ['branchChanged' => '$refresh'];
 
@@ -70,12 +106,24 @@ class Rooms extends Component
 
         $branchId = session('selected_branch_id', 1);
 
-        $rooms = Room::with('roomType')->where('branch_id', $branchId)->orderBy('room_number')->get();
+        $roomsQuery = Room::with('roomType')
+            ->where('branch_id', $branchId)
+            ->orderBy($this->sortField, $this->sortDirection);
+
+        $rooms = $roomsQuery->paginate(10);
+
+        if ($this->getPage() > $rooms->lastPage()) {
+            $this->setPage(max(1, $rooms->lastPage()));
+            $rooms = $roomsQuery->paginate(10);
+        }
+
         $roomTypes = RoomType::withCount('rooms')->get();
+        $services = Service::where('type', '!=', 'f_and_b')->get();
 
         return view('livewire.dashboard.rooms', [
             'rooms'     => $rooms,
             'roomTypes' => $roomTypes,
+            'services'  => $services,
         ]);
     }
 
@@ -200,6 +248,7 @@ class Rooms extends Component
             'typeCapacity'    => 'required|integer|min:1',
             'typeBedType'     => 'required|string|max:255',
             'typeHasBreakfast'=> 'required|boolean',
+            'typeIncludedAmenities' => 'nullable|array',
         ]);
 
         RoomType::create([
@@ -209,6 +258,7 @@ class Rooms extends Component
             'capacity'    => $this->typeCapacity,
             'bed_type'    => $this->typeBedType,
             'has_breakfast'=> $this->typeHasBreakfast,
+            'included_amenities' => $this->typeIncludedAmenities,
         ]);
 
         $this->typeName = '';
@@ -217,6 +267,7 @@ class Rooms extends Component
         $this->typeCapacity = 2;
         $this->typeBedType = 'King';
         $this->typeHasBreakfast = false;
+        $this->typeIncludedAmenities = [];
         session()->flash('success', 'Room Type added successfully.');
     }
 
@@ -231,6 +282,7 @@ class Rooms extends Component
         $this->editTypeCapacity = $type->capacity;
         $this->editTypeBedType = $type->bed_type ?? 'King';
         $this->editTypeHasBreakfast = (bool) $type->has_breakfast;
+        $this->editTypeIncludedAmenities = $type->included_amenities ?? [];
         $this->showEditTypeModal = true;
         $this->resetErrorBag();
     }
@@ -251,6 +303,7 @@ class Rooms extends Component
             'editTypeCapacity'    => 'required|integer|min:1',
             'editTypeBedType'     => 'required|string|max:255',
             'editTypeHasBreakfast'=> 'required|boolean',
+            'editTypeIncludedAmenities' => 'nullable|array',
         ]);
 
         $type = RoomType::findOrFail($this->editingTypeId);
@@ -261,6 +314,7 @@ class Rooms extends Component
             'capacity'    => $this->editTypeCapacity,
             'bed_type'    => $this->editTypeBedType,
             'has_breakfast'=> $this->editTypeHasBreakfast,
+            'included_amenities' => $this->editTypeIncludedAmenities,
         ]);
 
         session()->flash('success', "Room Type \"{$type->name}\" updated successfully.");
@@ -299,5 +353,101 @@ class Rooms extends Component
         $type->delete();
         session()->flash('success', "Room Type \"{$name}\" deleted.");
         $this->closeDeleteTypeModal();
+    }
+
+    // ── EXTRAS (SERVICES) CRUD ─────────────────────────────────────────
+    public function addExtra(): void
+    {
+        $this->validate([
+            'extraName' => 'required|string|max:255',
+            'extraPrice' => 'required|numeric|min:0',
+            'extraType' => 'required|in:general,extra_bed,f_and_b,laundry',
+            'extraDescription' => 'nullable|string|max:255',
+        ]);
+
+        Service::create([
+            'name' => $this->extraName,
+            'price' => $this->extraPrice,
+            'type' => $this->extraType,
+            'description' => $this->extraDescription,
+        ]);
+
+        $this->reset(['extraName', 'extraPrice', 'extraType', 'extraDescription']);
+        $this->extraPrice = 0;
+        $this->extraType = 'general';
+        session()->flash('success', 'Extra service added successfully.');
+    }
+
+    public function openEditExtraModal(int $serviceId): void
+    {
+        $service = Service::findOrFail($serviceId);
+        $this->editingExtraId = $serviceId;
+        $this->editExtraName = $service->name;
+        $this->editExtraPrice = (float) $service->price;
+        $this->editExtraType = $service->type;
+        $this->editExtraDescription = $service->description ?? '';
+        $this->showEditExtraModal = true;
+        $this->resetErrorBag();
+    }
+
+    public function closeEditExtraModal(): void
+    {
+        $this->showEditExtraModal = false;
+        $this->editingExtraId = null;
+        $this->resetErrorBag();
+    }
+
+    public function updateExtra(): void
+    {
+        $this->validate([
+            'editExtraName' => 'required|string|max:255',
+            'editExtraPrice' => 'required|numeric|min:0',
+            'editExtraType' => 'required|in:general,extra_bed,f_and_b,laundry',
+            'editExtraDescription' => 'nullable|string|max:255',
+        ]);
+
+        $service = Service::findOrFail($this->editingExtraId);
+        $service->update([
+            'name' => $this->editExtraName,
+            'price' => $this->editExtraPrice,
+            'type' => $this->editExtraType,
+            'description' => $this->editExtraDescription,
+        ]);
+
+        session()->flash('success', "Extra service \"{$service->name}\" updated successfully.");
+        $this->closeEditExtraModal();
+    }
+
+    public function confirmDeleteExtra(int $serviceId): void
+    {
+        $service = Service::findOrFail($serviceId);
+        
+        $cart = session('cart', []);
+        foreach ($cart as $item) {
+            if (isset($item['extras']) && in_array($serviceId, $item['extras'])) {
+                session()->flash('error', "Cannot delete \"{$service->name}\" — it is currently selected in a guest's cart.");
+                return;
+            }
+        }
+
+        $this->deletingExtraId = $serviceId;
+        $this->deletingExtraName = $service->name;
+        $this->showDeleteExtraModal = true;
+    }
+
+    public function closeDeleteExtraModal(): void
+    {
+        $this->showDeleteExtraModal = false;
+        $this->deletingExtraId = null;
+    }
+
+    public function deleteExtra(): void
+    {
+        $service = Service::findOrFail($this->deletingExtraId);
+        $name = $service->name;
+        $service->delete();
+
+        session()->flash('success', "Extra service \"{$name}\" deleted successfully.");
+        $this->closeDeleteExtraModal();
     }
 }

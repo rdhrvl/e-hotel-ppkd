@@ -15,7 +15,7 @@
                 </span>
                 <input type="text" wire:model.live.debounce.300ms="search" class="w-full rounded border border-[var(--border-color)] bg-[var(--bg-card)] pl-9 pr-4 py-2 text-sm text-[var(--text-primary)] placeholder-[#8e8d89] focus:border-[#111111] focus:outline-none transition-all" placeholder="Search services…">
             </div>
-            <button class="inline-flex items-center gap-1.5 rounded bg-[var(--text-primary)] hover:bg-[var(--text-secondary)] px-4 py-2 text-xs font-semibold text-[var(--bg-card)] transition-all cursor-pointer" wire:click="openAddModal" id="btn-add-service">
+            <button class="inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] bg-[var(--accent-primary)] hover:bg-[var(--accent-primary-hover)] px-4 py-2 text-xs font-semibold text-white transition-all cursor-pointer" wire:click="openAddModal" id="btn-add-service">
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path d="M12 5v14M5 12h14"/>
                 </svg>
@@ -38,11 +38,17 @@
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                     <thead>
-                        <tr class="border-b border-[var(--border-color)] bg-[var(--bg-primary)] text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] sticky top-0 z-10">
-                            <th class="p-4">Service</th>
-                            <th class="p-4">Type</th>
-                            <th class="p-4">Price / unit</th>
-                            <th class="p-4 text-right">Actions</th>
+                        <tr class="sticky top-0 z-10 select-none">
+                            <th class="px-4 py-3 text-xs font-semibold text-[var(--text-muted)] bg-[var(--bg-secondary)] border-b-2 border-[var(--border-color)] cursor-pointer hover:bg-[var(--bg-card-hover)] transition-colors" wire:click="sortBy('name')">
+                                Service @if($sortField === 'name') {{$sortDirection === 'asc' ? '▲' : '▼'}} @endif
+                            </th>
+                            <th class="px-4 py-3 text-xs font-semibold text-[var(--text-muted)] bg-[var(--bg-secondary)] border-b-2 border-[var(--border-color)] cursor-pointer hover:bg-[var(--bg-card-hover)] transition-colors" wire:click="sortBy('type')">
+                                Type @if($sortField === 'type') {{$sortDirection === 'asc' ? '▲' : '▼'}} @endif
+                            </th>
+                            <th class="px-4 py-3 text-xs font-semibold text-[var(--text-muted)] bg-[var(--bg-secondary)] border-b-2 border-[var(--border-color)] cursor-pointer hover:bg-[var(--bg-card-hover)] transition-colors" wire:click="sortBy('price')">
+                                Price / unit @if($sortField === 'price') {{$sortDirection === 'asc' ? '▲' : '▼'}} @endif
+                            </th>
+                            <th class="px-4 py-3 text-xs font-semibold text-[var(--text-muted)] bg-[var(--bg-secondary)] border-b-2 border-[var(--border-color)] text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-[var(--border-color)] text-xs text-[var(--text-secondary)]">
@@ -63,7 +69,7 @@
                                 ];
                             @endphp
                             <tr class="hover:bg-[var(--bg-card-hover)] transition-colors even:bg-[var(--bg-primary)]/50">
-                                <td class="p-4">
+                                <td class="px-4 py-3.5 text-sm border-b border-[var(--border-color)]">
                                     <div class="flex items-center gap-3">
                                         <div class="w-8 h-8 rounded flex items-center justify-center text-sm {{ $bgClasses[$service->type] ?? $bgClasses['general'] }}">
                                             {{ $icons[$service->type] ?? '⭐' }}
@@ -71,13 +77,13 @@
                                         <span class="font-bold text-[var(--text-primary)]">{{ $service->name }}</span>
                                     </div>
                                 </td>
-                                <td class="p-4">
-                                    <span class="inline-flex rounded px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider {{ $badgeClasses[$service->type] ?? $badgeClasses['general'] }}">
+                                <td class="px-4 py-3.5 text-sm border-b border-[var(--border-color)]">
+                                    <span class="inline-flex items-center rounded-[var(--radius-sm)] px-2.5 py-0.5 text-xs font-semibold border {{ $badgeClasses[$service->type] ?? $badgeClasses['general'] }}">
                                         {{ $serviceTypes[$service->type] ?? $service->type }}
                                     </span>
                                 </td>
-                                <td class="p-4 font-bold text-[var(--text-primary)] font-mono">Rp {{ number_format((float)$service->price, 0, ',', '.') }}</td>
-                                <td class="p-4 text-right">
+                                <td class="px-4 py-3.5 text-sm border-b border-[var(--border-color)] font-bold text-[var(--text-primary)] font-mono">Rp {{ number_format((float)$service->price, 0, ',', '.') }}</td>
+                                <td class="px-4 py-3.5 text-sm border-b border-[var(--border-color)] text-right">
                                     <div class="flex items-center justify-end gap-2">
                                         <button class="p-1.5 rounded text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer" wire:click="openEditModal({{ $service->id }})" title="Edit service">
                                             <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -99,30 +105,35 @@
                     </tbody>
                 </table>
             </div>
+            @if($services->hasPages())
+                <div class="p-4 border-t border-[var(--border-color)] bg-[var(--bg-primary)]/30">
+                    {{ $services->links('livewire.dashboard.pagination') }}
+                </div>
+            @endif
         @endif
     </div>
 
     {{-- ── ADD SERVICE MODAL ── --}}
     @if($showAddModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs" wire:click.self="closeAddModal">
-            <div class="w-full max-w-md rounded bg-[var(--bg-card)] border border-[var(--border-color)] p-6 shadow-lg space-y-5">
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" wire:click.self="closeAddModal">
+            <div class="w-full max-w-md rounded-[var(--radius-lg)] bg-[var(--bg-card)] border border-[var(--border-color)] p-6 shadow-lg space-y-5">
                 <div class="flex items-center gap-2.5 border-b border-[var(--border-color)] pb-3">
                     <svg class="h-5 w-5 text-[var(--info)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/>
                         <rect x="9" y="3" width="6" height="4" rx="1"/>
                         <path d="M12 12v4M10 14h4"/>
                     </svg>
-                    <h3 class="text-sm font-bold text-[var(--text-primary)] uppercase tracking-wider">Add New Service</h3>
+                    <h3 class="text-base font-semibold text-[var(--text-primary)]">Add New Service</h3>
                 </div>
                 <form wire:submit.prevent="createService" class="space-y-4">
                     <div>
-                        <label class="block text-[10px] font-bold text-[var(--text-muted)] mb-1.5 uppercase tracking-wider">Service Name</label>
+                        <label class="text-sm font-medium text-[var(--text-secondary)] mb-1.5 block">Service Name</label>
                         <input type="text" wire:model="name" class="w-full rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-sm text-[var(--text-primary)] focus:border-[#111111] focus:outline-none transition-all" placeholder="e.g. Breakfast Buffet" autofocus>
                         @error('name') <span class="text-xs text-[var(--danger)] mt-1 block">{{ $message }}</span> @enderror
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-[10px] font-bold text-[var(--text-muted)] mb-1.5 uppercase tracking-wider">Type</label>
+                            <label class="text-sm font-medium text-[var(--text-secondary)] mb-1.5 block">Type</label>
                             <select wire:model="type" class="w-full rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-sm text-[var(--text-primary)] focus:border-[#111111] focus:outline-none transition-all cursor-pointer">
                                 @foreach($serviceTypes as $key => $label)
                                     <option value="{{ $key }}">{{ $label }}</option>
@@ -131,14 +142,14 @@
                             @error('type') <span class="text-xs text-[var(--danger)] mt-1 block">{{ $message }}</span> @enderror
                         </div>
                         <div>
-                            <label class="block text-[10px] font-bold text-[var(--text-muted)] mb-1.5 uppercase tracking-wider">Price (Rp)</label>
+                            <label class="text-sm font-medium text-[var(--text-secondary)] mb-1.5 block">Price (Rp)</label>
                             <input type="number" wire:model="price" class="w-full rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-sm text-[var(--text-primary)] focus:border-[#111111] focus:outline-none transition-all" placeholder="50000" min="0">
                             @error('price') <span class="text-xs text-[var(--danger)] mt-1 block">{{ $message }}</span> @enderror
                         </div>
                     </div>
                     <div class="flex justify-end gap-3 border-t border-[var(--border-color)] pt-4 mt-2">
                         <button type="button" class="rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] transition-colors" wire:click="closeAddModal">Cancel</button>
-                        <button type="submit" class="rounded bg-[var(--text-primary)] hover:bg-[var(--text-secondary)] px-4 py-2 text-xs font-semibold text-[var(--bg-card)] transition-colors" wire:loading.attr="disabled">
+                        <button type="submit" class="rounded-[var(--radius-sm)] bg-[var(--accent-primary)] hover:bg-[var(--accent-primary-hover)] px-4 py-2 text-xs font-semibold text-white transition-colors" wire:loading.attr="disabled">
                             <span wire:loading.remove>Add Service</span>
                             <span wire:loading>Adding…</span>
                         </button>
@@ -150,23 +161,23 @@
 
     {{-- ── EDIT SERVICE MODAL ── --}}
     @if($showEditModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs" wire:click.self="closeEditModal">
-            <div class="w-full max-w-md rounded bg-[var(--bg-card)] border border-[var(--border-color)] p-6 shadow-lg space-y-5">
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" wire:click.self="closeEditModal">
+            <div class="w-full max-w-md rounded-[var(--radius-lg)] bg-[var(--bg-card)] border border-[var(--border-color)] p-6 shadow-lg space-y-5">
                 <div class="flex items-center gap-2.5 border-b border-[var(--border-color)] pb-3">
                     <svg class="h-5 w-5 text-[var(--info)]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                     </svg>
-                    <h3 class="text-sm font-bold text-[var(--text-primary)] uppercase tracking-wider">Edit Service</h3>
+                    <h3 class="text-base font-semibold text-[var(--text-primary)]">Edit Service</h3>
                 </div>
                 <form wire:submit.prevent="updateService" class="space-y-4">
                     <div>
-                        <label class="block text-[10px] font-bold text-[var(--text-muted)] mb-1.5 uppercase tracking-wider">Service Name</label>
+                        <label class="text-sm font-medium text-[var(--text-secondary)] mb-1.5 block">Service Name</label>
                         <input type="text" wire:model="editName" class="w-full rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-sm text-[var(--text-primary)] focus:border-[#111111] focus:outline-none transition-all">
                         @error('editName') <span class="text-xs text-[var(--danger)] mt-1 block">{{ $message }}</span> @enderror
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-[10px] font-bold text-[var(--text-muted)] mb-1.5 uppercase tracking-wider">Type</label>
+                            <label class="text-sm font-medium text-[var(--text-secondary)] mb-1.5 block">Type</label>
                             <select wire:model="editType" class="w-full rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-sm text-[var(--text-primary)] focus:border-[#111111] focus:outline-none transition-all cursor-pointer">
                                 @foreach($serviceTypes as $key => $label)
                                     <option value="{{ $key }}">{{ $label }}</option>
@@ -175,14 +186,14 @@
                             @error('editType') <span class="text-xs text-[var(--danger)] mt-1 block">{{ $message }}</span> @enderror
                         </div>
                         <div>
-                            <label class="block text-[10px] font-bold text-[var(--text-muted)] mb-1.5 uppercase tracking-wider">Price (Rp)</label>
+                            <label class="text-sm font-medium text-[var(--text-secondary)] mb-1.5 block">Price (Rp)</label>
                             <input type="number" wire:model="editPrice" class="w-full rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-sm text-[var(--text-primary)] focus:border-[#111111] focus:outline-none transition-all" min="0">
                             @error('editPrice') <span class="text-xs text-[var(--danger)] mt-1 block">{{ $message }}</span> @enderror
                         </div>
                     </div>
                     <div class="flex justify-end gap-3 border-t border-[var(--border-color)] pt-4 mt-2">
                         <button type="button" class="rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] transition-colors" wire:click="closeEditModal">Cancel</button>
-                        <button type="submit" class="rounded bg-[var(--text-primary)] hover:bg-[var(--text-secondary)] px-4 py-2 text-xs font-semibold text-[var(--bg-card)] transition-colors" wire:loading.attr="disabled">
+                        <button type="submit" class="rounded-[var(--radius-sm)] bg-[var(--accent-primary)] hover:bg-[var(--accent-primary-hover)] px-4 py-2 text-xs font-semibold text-white transition-colors" wire:loading.attr="disabled">
                             <span wire:loading.remove>Save Changes</span>
                             <span wire:loading>Saving…</span>
                         </button>
@@ -194,22 +205,22 @@
 
     {{-- ── DELETE CONFIRM ── --}}
     @if($showDeleteModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs" wire:click.self="closeDeleteModal">
-            <div class="w-full max-w-sm rounded bg-[var(--bg-card)] border border-[var(--border-color)] p-6 shadow-lg space-y-4">
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" wire:click.self="closeDeleteModal">
+            <div class="w-full max-w-sm rounded-[var(--radius-lg)] bg-[var(--bg-card)] border border-[var(--border-color)] p-6 shadow-lg space-y-4">
                 <div class="flex items-center gap-2 text-[var(--danger)] border-b border-[var(--border-color)] pb-3">
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
                         <line x1="12" y1="9" x2="12" y2="13"/>
                         <line x1="12" y1="17" x2="12.01" y2="17"/>
                     </svg>
-                    <h3 class="text-sm font-bold uppercase tracking-wider">Confirm Delete</h3>
+                    <h3 class="text-base font-semibold text-[var(--text-primary)]">Confirm Delete</h3>
                 </div>
                 <p class="text-xs text-[var(--text-secondary)] leading-relaxed">
                     Are you sure you want to delete <strong class="text-[var(--text-primary)] font-bold">{{ $deletingServiceName }}</strong>? This action cannot be undone.
                 </p>
                 <div class="flex justify-end gap-3 border-t border-[var(--border-color)] pt-4 mt-2">
                     <button class="rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] transition-colors" wire:click="closeDeleteModal">Cancel</button>
-                    <button class="rounded bg-[#9f2f2d] hover:bg-[#9f2f2d]/80 px-4 py-2 text-xs font-semibold text-white transition-colors" wire:click="deleteService" wire:loading.attr="disabled">
+                    <button class="rounded bg-[var(--danger)] hover:bg-[var(--danger)]/90 px-4 py-2 text-xs font-semibold text-white transition-colors" wire:click="deleteService" wire:loading.attr="disabled">
                         <span wire:loading.remove>Delete</span>
                         <span wire:loading>Deleting…</span>
                     </button>

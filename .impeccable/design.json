@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-21T01:39:50Z",
+  "title": "Design System: Hotel Management System",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Pacific Cobalt",
+        "canonical": "oklch(50.48% 0.224 256.85)",
+        "tonalRamp": ["#eff6ff", "#dbeade", "#bfdbfe", "#93c5fd", "#60a5fa", "#3b82f6", "#2563eb", "#1d4ed8", "#1e3a8a", "#172554"]
+      },
+      "neutral-bg": {
+        "role": "neutral",
+        "displayName": "Background Primary",
+        "canonical": "oklch(98.48% 0.005 238.45)",
+        "tonalRamp": ["#f8fafc", "#f1f5f9", "#e2e8f0", "#cbd5e1", "#94a3b8", "#64748b", "#475569", "#334155", "#1e293b", "#0f172a"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Hero brand titles and main page headers." },
+      "body": { "displayName": "Body", "purpose": "General body text and descriptions." }
+    },
+    "shadows": [
+      { "name": "standard", "value": "0 1px 3px 0 rgba(0, 0, 0, 0.05)", "purpose": "Applied to cards at rest." },
+      { "name": "active", "value": "0 10px 15px -3px rgba(0, 0, 0, 0.03)", "purpose": "Applied to hovered items and modals." }
+    ],
+    "motion": [
+      { "name": "snappy", "value": "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Standard snappy easing transition." }
+    ],
+    "breakpoints": []
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Standard action button with slight scale-down effect.",
+      "html": "<button class=\"ds-btn-primary\">Confirm Booking</button>",
+      "css": ".ds-btn-primary { background: #2563eb; color: #fff; padding: 12px 24px; font-weight: 600; font-family: 'Outfit', sans-serif; border: none; border-radius: 6px; cursor: pointer; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); } .ds-btn-primary:hover { background: #1d4ed8; transform: scale(0.98); }"
+    },
+    {
+      "name": "Standard Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Base card container for stats and forms.",
+      "html": "<div class=\"ds-card\"><h3 class=\"ds-card-title\">Room Status</h3><p class=\"ds-card-content\">Room 101 is ready.</p></div>",
+      "css": ".ds-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 24px; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05); transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); } .ds-card:hover { border-color: #cbd5e1; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.03); } .ds-card-title { margin: 0 0 8px 0; color: #0f172a; font-weight: 700; font-family: 'Outfit', sans-serif; } .ds-card-content { margin: 0; color: #334155; font-family: 'Outfit', sans-serif; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Refined Operational Canvas",
+    "overview": "This design system serves as a clean, highly structured administrative workspace optimized for fast-paced hospitality operations. It prioritizes information density and typographic hierarchy, ensuring front-desk clerks and managers can consume metrics, manage room statuses, and finalize check-out guest bookings with zero friction.",
+    "keyCharacteristics": [
+      "High legibility through contrast and dark-neutral colors.",
+      "Functional status colors mapping directly to room and booking states.",
+      "Snappy interactions guided by micro-transitions and clear hover feedback."
+    ],
+    "rules": [
+      { "name": "The Color Contrast Rule", "body": "Primary body text must always preserve a >= 4.5:1 contrast ratio against the background. Muted gray text is strictly forbidden on colored surfaces.", "section": "colors" },
+      { "name": "The Semantic Status Rule", "body": "Status colors (Green for Available/Success, Red for Occupied/Danger, Yellow for Reserved/Warning, Blue for Cleaning/Info) must maintain a constant semantic mapping across all tables, badges, and filters.", "section": "colors" },
+      { "name": "The Uppercase Eyebrow Restriction Rule", "body": "Small, uppercase uppercase tracked eyebrows are prohibited as generic section titles.", "section": "typography" },
+      { "name": "The Border-or-Shadow Rule", "body": "Never combine a strong 1px border with a soft drop shadow on the same card or container. Choose clean borders at rest, and promote to shadows on hover.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do use semantic badge colors to represent state (e.g. green for Available / checked-in, red for Occupied / danger).",
+      "Do maintain a consistent 6px corner radius for inputs and buttons, and 8px/12px for cards.",
+      "Do ensure all form labels are positioned directly above the input fields."
+    ],
+    "donts": [
+      "Don't use colored side-stripe borders (e.g. border-left-width: 4px) to designate item status or highlight state.",
+      "Don't use gradient text or decorative glassmorphism.",
+      "Don't use card corners exceeding 12px."
+    ]
+  }
+}

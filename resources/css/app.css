@@ -393,7 +393,6 @@
 .notification-card {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
-    border-left: 4px solid var(--accent-primary);
     border-radius: var(--radius-sm);
     padding: 16px;
     display: flex;
@@ -405,24 +404,27 @@
 
 .notification-card.unread {
     background: var(--bg-secondary);
-    border-color: var(--border-color);
-    border-left-color: var(--accent-primary);
+    border-color: var(--accent-primary);
 }
 
 .notification-card.type-delivery_checkpoint {
-    border-left-color: var(--info);
+    border-color: var(--info);
+    background: var(--info-bg);
 }
 
 .notification-card.type-password_change {
-    border-left-color: var(--danger);
+    border-color: var(--danger);
+    background: var(--danger-bg);
 }
 
 .notification-card.type-pin_change {
-    border-left-color: var(--warning);
+    border-color: var(--warning);
+    background: var(--warning-bg);
 }
 
 .notification-card.type-upload_success {
-    border-left-color: var(--success);
+    border-color: var(--success);
+    background: var(--success-bg);
 }
 
 .notification-time {
