@@ -4,6 +4,32 @@
     --grid-template-columns-10: repeat(10, minmax(0, 1fr));
 }
 
+/* ── Thin themed scrollbar ── */
+.custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-hover) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: var(--border-color);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: var(--border-hover);
+}
+
 @layer base {
     body.guest-layout {
         font-family: 'Outfit', sans-serif;
@@ -72,19 +98,35 @@
         background: var(--bg-card);
         border: 1px solid var(--border-color);
         box-shadow: var(--shadow-lg);
-        animation: toastSlideIn 0.4s cubic-bezier(.4,0,.2,1);
+        animation: toastSlideIn 0.4s cubic-bezier(.4, 0, .2, 1);
         display: flex;
         align-items: center;
         gap: 10px;
     }
 
-    .toast-success { background: var(--success-bg); color: var(--success); border-color: var(--border-color); }
-    .toast-error { background: var(--danger-bg); color: var(--danger); border-color: var(--border-color); }
+    .toast-success {
+        background: var(--success-bg);
+        color: var(--success);
+        border-color: var(--border-color);
+    }
+
+    .toast-error {
+        background: var(--danger-bg);
+        color: var(--danger);
+        border-color: var(--border-color);
+    }
 }
 
 @keyframes toastSlideIn {
-    from { transform: translateX(100px); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
+    from {
+        transform: translateX(100px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
 }
 
 @media (max-width: 480px) {
@@ -152,6 +194,7 @@
 }
 
 @layer base {
+
     /* ── Base Styles ── */
     body {
         background-color: var(--bg-primary);
@@ -607,6 +650,7 @@
     from {
         opacity: 0;
     }
+
     to {
         opacity: 1;
     }
@@ -617,6 +661,7 @@
         transform: translateY(30px);
         opacity: 0;
     }
+
     to {
         transform: translateY(0);
         opacity: 1;

@@ -59,9 +59,16 @@ Route::middleware('auth')->group(function () {
     // Receipt Invoice (Printable A4)
     Route::get('/bookings/{booking}/invoice', function (Booking $booking) {
         return view('invoice', [
-            'booking' => $booking->load(['room.roomType', 'guestBill', 'bookingItems.service', 'payments']),
+            'booking' => $booking->load(['room.roomType', 'guestBill', 'bookingItems.service', 'payments', 'guest']),
         ]);
     })->name('bookings.invoice');
+
+    // Registration Form (Printable A4)
+    Route::get('/bookings/{booking}/registration-form', function (Booking $booking) {
+        return view('registration-form', [
+            'booking' => $booking->load(['room.roomType', 'guestBill', 'guest']),
+        ]);
+    })->name('bookings.registration-form');
 
     // ── Admin-only screens ──────────────────────────────────────────────────
     Route::middleware('can:isAdmin')->group(function () {

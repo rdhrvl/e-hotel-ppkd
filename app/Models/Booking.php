@@ -25,12 +25,20 @@ class Booking extends Model
         'number_of_guests',
         'status', // 'pending', 'confirmed', 'checked_in', 'checked_out', 'cancelled'
         'total_price',
+        'arrival_time',
+        'box_no',
+        'box_issued_by',
+        'box_date',
+        'payment_method',
+        'notes',
+        'book_by',
     ];
 
     protected $casts = [
         'check_in_date' => 'date',
         'check_out_date' => 'date',
         'total_price' => 'decimal:2',
+        'box_date' => 'date',
     ];
 
     protected static function boot()
@@ -72,6 +80,12 @@ class Booking extends Model
     public function bookingItems(): HasMany
     {
         return $this->hasMany(BookingItem::class);
+    }
+
+    /** @return HasMany<FoodOrder, $this> */
+    public function foodOrders(): HasMany
+    {
+        return $this->hasMany(FoodOrder::class);
     }
 
     /** @return BelongsToMany<Service, $this> */

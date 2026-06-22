@@ -118,7 +118,7 @@ class Bookings extends Component
         $fnbServices = \App\Models\Service::where('type', 'f_and_b')
             ->where('is_active', true)
             ->get();
-        $orderBooking = $this->bookingIdForOrder ? Booking::with(['room.roomType', 'guest'])->find($this->bookingIdForOrder) : null;
+        $orderBooking = $this->bookingIdForOrder ? Booking::with(['room.roomType', 'guest', 'foodOrders.items.service'])->find($this->bookingIdForOrder) : null;
 
         return view('livewire.dashboard.bookings', [
             'bookings' => $bookings,

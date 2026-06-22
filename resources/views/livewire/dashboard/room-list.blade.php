@@ -9,10 +9,10 @@
     </div>
 
     {{-- KPI Counters --}}
-    <div class="grid grid-cols-4 md:grid-cols-4 gap-6 mb-8">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 mb-8">
         {{-- Total Rooms (All) --}}
         <div wire:click="toggleStatusFilter('')" 
-             class="rounded border p-5 flex items-center justify-between shadow-sm transition-all duration-200 cursor-pointer hover:border-[var(--text-primary)] hover:scale-[1.01] active:scale-[0.99] select-none
+             class="rounded border p-4 sm:p-5 flex items-center justify-between gap-2 shadow-sm transition-all duration-200 cursor-pointer hover:border-[var(--text-primary)] hover:scale-[1.01] active:scale-[0.99] select-none
              {{ $filterStatus === '' ? 'border-[var(--text-primary)] bg-[var(--bg-secondary)] ring-1 ring-[var(--text-primary)]' : 'border-[var(--border-color)] bg-[var(--bg-card)]' }}">
             <div>
                 <span class="text-2xl font-bold text-[var(--text-primary)] font-mono tracking-tight">{{ $totalRoomsCount }}</span>
@@ -27,7 +27,7 @@
 
         {{-- Available --}}
         <div wire:click="toggleStatusFilter('available')" 
-             class="rounded border p-5 flex items-center justify-between shadow-sm transition-all duration-200 cursor-pointer hover:border-[var(--success)] hover:scale-[1.01] active:scale-[0.99] select-none
+             class="rounded border p-4 sm:p-5 flex items-center justify-between gap-2 shadow-sm transition-all duration-200 cursor-pointer hover:border-[var(--success)] hover:scale-[1.01] active:scale-[0.99] select-none
              {{ $filterStatus === 'available' ? 'border-[var(--success)] bg-[var(--success-bg)] ring-1 ring-[var(--success)]' : 'border-[var(--border-color)] bg-[var(--bg-card)]' }}">
             <div>
                 <span class="text-2xl font-bold text-[var(--success)] font-mono tracking-tight">{{ $availableRoomsCount }}</span>
@@ -42,7 +42,7 @@
 
         {{-- Reserved --}}
         <div wire:click="toggleStatusFilter('reserved')" 
-             class="rounded border p-5 flex items-center justify-between shadow-sm transition-all duration-200 cursor-pointer hover:border-[var(--warning)] hover:scale-[1.01] active:scale-[0.99] select-none
+             class="rounded border p-4 sm:p-5 flex items-center justify-between gap-2 shadow-sm transition-all duration-200 cursor-pointer hover:border-[var(--warning)] hover:scale-[1.01] active:scale-[0.99] select-none
              {{ $filterStatus === 'reserved' ? 'border-[var(--warning)] bg-[var(--warning-bg)] ring-1 ring-[var(--warning)]' : 'border-[var(--border-color)] bg-[var(--bg-card)]' }}">
             <div>
                 <span class="text-2xl font-bold text-[var(--warning)] font-mono tracking-tight">{{ $reservedRoomsCount }}</span>
@@ -57,7 +57,7 @@
 
         {{-- Occupied --}}
         <div wire:click="toggleStatusFilter('occupied')" 
-             class="rounded border p-5 flex items-center justify-between shadow-sm transition-all duration-200 cursor-pointer hover:border-[var(--danger)] hover:scale-[1.01] active:scale-[0.99] select-none
+             class="rounded border p-4 sm:p-5 flex items-center justify-between gap-2 shadow-sm transition-all duration-200 cursor-pointer hover:border-[var(--danger)] hover:scale-[1.01] active:scale-[0.99] select-none
              {{ $filterStatus === 'occupied' ? 'border-[var(--danger)] bg-[var(--danger-bg)] ring-1 ring-[var(--danger)]' : 'border-[var(--border-color)] bg-[var(--bg-card)]' }}">
             <div>
                 <span class="text-2xl font-bold text-[var(--danger)] font-mono tracking-tight">{{ $occupiedRoomsCount }}</span>
@@ -72,7 +72,7 @@
     </div>
 
     {{-- Filter / Search Bar --}}
-    <div class="flex flex-wrap items-center gap-4 mb-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 mb-6">
         {{-- Room Type --}}
         <div>
             <label class="text-sm font-medium text-[var(--text-secondary)] mb-1.5 block">Room Type</label>
@@ -129,7 +129,7 @@
             </div>
 
             {{-- Room grid --}}
-            <div class="grid grid-cols-5 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-8 xl:grid-cols-10 gap-3">
+            <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-2 sm:gap-3">
                 @foreach($sortedFloorRooms as $room)
                     @php
                         $typeName = strtoupper(substr($room->roomType->name, 0, 3));
@@ -207,12 +207,12 @@
     @endforelse
 
     @if($totalPages > 1)
-        <div class="mt-8 p-4 rounded border border-[var(--border-color)] bg-[var(--bg-card)] flex items-center justify-between shadow-sm select-none">
-            <div class="text-xs text-[var(--text-secondary)]">
+        <div class="mt-8 p-4 rounded border border-[var(--border-color)] bg-[var(--bg-card)] flex flex-col sm:flex-row items-center justify-between gap-3 shadow-sm select-none">
+            <div class="text-xs text-[var(--text-secondary)] text-center sm:text-left">
                 Showing page <span class="font-bold text-[var(--text-primary)]">{{ $currentPage }}</span> of <span class="font-bold text-[var(--text-primary)]">{{ $totalPages }}</span> (<span class="font-bold text-[var(--text-primary)] font-mono">{{ $totalItems }}</span> floors total)
             </div>
-            
-            <div class="flex items-center gap-1">
+
+            <div class="flex items-center flex-wrap justify-center gap-1">
                 {{-- Previous button --}}
                 @if($currentPage == 1)
                     <button disabled class="rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] px-3 py-1.5 text-xs font-bold text-[var(--text-muted)] cursor-not-allowed select-none">
@@ -416,7 +416,7 @@
              x-data="{}"
              x-on:keydown.escape.window="$wire.set('selectedRoomId', null)">
              
-             <div class="relative w-full max-w-sm rounded-[var(--radius-lg)] bg-[var(--bg-card)] border border-[var(--border-color)] p-6 shadow-lg text-[var(--text-secondary)] mx-auto"
+             <div class="relative w-full max-w-sm max-h-[90vh] overflow-y-auto rounded-[var(--radius-lg)] bg-[var(--bg-card)] border border-[var(--border-color)] p-5 sm:p-6 shadow-lg text-[var(--text-secondary)] mx-auto"
                   wire:click.stop="">
                   
                   {{-- Header row --}}

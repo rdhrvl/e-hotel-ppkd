@@ -130,9 +130,16 @@
                                     @endif
 
                                     @if($booking->status !== 'cancelled')
-                                        <a href="{{ route('bookings.invoice', $booking->id) }}" target="_blank" class="rounded-md border border-[var(--border-color)] hover:bg-[var(--bg-secondary)] p-1.5 text-[var(--text-secondary)] transition-all" title="Print Invoice">
+                                        {{-- Print Confirmation / Invoice --}}
+                                        <a href="{{ route('bookings.invoice', $booking->id) }}" target="_blank" class="rounded-md border border-[var(--border-color)] hover:bg-[var(--bg-secondary)] p-1.5 text-[var(--text-secondary)] transition-all" title="Print Confirmation / Invoice">
                                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M6.72 13.821l.5.5a2.25 2.25 0 003.18 0l1.838-1.838a2.25 2.25 0 000-3.18l-.5-.5m-2.94 2.94l-.707.707a3 3 0 11-4.243-4.243l1.828-1.829A3 3 0 018.586 5.5L8 6.086m1.88 2.286l.707-.707a3 3 0 00-1.828-5.184 3 3 0 00-1.828.829l-1.83 1.83" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                                            </svg>
+                                        </a>
+                                        {{-- Print Registration Card --}}
+                                        <a href="{{ route('bookings.registration-form', $booking->id) }}" target="_blank" class="rounded-md border border-[var(--border-color)] hover:bg-[var(--bg-secondary)] p-1.5 text-[var(--text-secondary)] transition-all" title="Print Registration Card">
+                                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5zm6-10.125a1.875 1.875 0 11-3.75 0 1.875 1.875 0 013.75 0zm1.294 6.336a6.721 6.721 0 01-3.17.789 6.721 6.721 0 01-3.168-.789 3.376 3.376 0 016.338 0z" />
                                             </svg>
                                         </a>
                                     @endif
@@ -178,7 +185,10 @@
                         <input type="number" wire:model="depositAmount" class="w-full rounded-md border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent-primary)] focus:shadow-[0_0_0_3px_rgba(37,99,235,0.1)] focus:outline-none transition-all" required>
                     </div>
 
-                    <div class="flex justify-end gap-3 border-t border-[var(--border-color)] pt-4">
+                    <div class="flex justify-end gap-3 border-t border-[var(--border-color)] pt-4 items-center">
+                        <a href="{{ route('bookings.registration-form', $checkInBooking->id) }}" target="_blank" class="inline-flex items-center gap-1.5 rounded-md border border-[var(--border-color)] bg-[var(--bg-card)] hover:bg-[var(--bg-secondary)] px-3.5 py-2 text-xs font-semibold text-[var(--text-secondary)] mr-auto transition-all">
+                            Print Registration Form
+                        </a>
                         <button type="button" wire:click="closeCheckInModal" class="rounded-md border border-[var(--border-color)] bg-[var(--bg-card)] px-4 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] transition-all">Cancel</button>
                         <button type="submit" class="rounded-md bg-[var(--accent-primary)] hover:bg-[var(--accent-primary-hover)] px-4 py-2 text-xs font-semibold text-white transition-all">Confirm Check-In</button>
                     </div>
@@ -383,6 +393,46 @@
                         <p class="flex justify-between"><strong class="text-[var(--text-muted)]">Guest:</strong> <span class="font-bold text-[var(--text-primary)]">{{ $orderBooking->guest->name }}</span></p>
                     </div>
 
+                    {{-- Existing Orders & Current Status --}}
+                    <div class="rounded-md border border-[var(--border-color)] bg-[var(--bg-primary)]/40 p-4 text-xs space-y-3">
+                        <span class="text-sm font-medium text-[var(--text-secondary)] block">Order History &amp; Status</span>
+                        <div class="space-y-2 max-h-[200px] overflow-y-auto pr-1 custom-scrollbar">
+                            @forelse($orderBooking->foodOrders->sortByDesc('created_at') as $order)
+                                <div class="rounded-[var(--radius-sm)] border border-[var(--border-color)] bg-[var(--bg-card)] p-3 space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <span class="font-mono font-bold text-[var(--accent-primary)]">Order #{{ $order->id }}</span>
+                                        @php
+                                            $statusStyles = [
+                                                'processed' => 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border-[var(--border-color)]',
+                                                'preparing' => 'bg-[var(--warning-bg)] text-[var(--warning)] border-[var(--border-color)]',
+                                                'delivered' => 'bg-[var(--success-bg)] text-[var(--success)] border-[var(--border-color)]',
+                                                'completed' => 'bg-[var(--success-bg)] text-[var(--success)] border-[var(--border-color)]',
+                                            ];
+                                            $statusClass = $statusStyles[$order->status] ?? 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border-[var(--border-color)]';
+                                        @endphp
+                                        <span class="inline-flex items-center rounded-[var(--radius-sm)] px-2.5 py-0.5 text-[10px] font-semibold border {{ $statusClass }}">
+                                            {{ ucfirst($order->status) }}
+                                        </span>
+                                    </div>
+                                    <div class="space-y-1">
+                                        @foreach($order->items as $item)
+                                            <div class="flex justify-between text-[var(--text-secondary)]">
+                                                <span class="truncate max-w-[260px]">{{ $item->quantity }}x {{ $item->service->name }}</span>
+                                                <span class="font-mono">Rp {{ number_format($item->price * $item->quantity) }}</span>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                    <div class="flex justify-between border-t border-dashed border-[var(--border-color)] pt-1.5 font-bold text-[var(--text-primary)]">
+                                        <span>{{ $order->created_at->format('d M Y H:i') }}</span>
+                                        <span class="font-mono">Rp {{ number_format((float)$order->total_price) }}</span>
+                                    </div>
+                                </div>
+                            @empty
+                                <p class="text-xs text-[var(--text-muted)] italic">No orders placed yet for this booking.</p>
+                            @endforelse
+                        </div>
+                    </div>
+
                     @php
                         $categories = $fnbServices->pluck('category')->unique()->filter()->sort()->values();
                     @endphp
@@ -401,7 +451,7 @@
                         @php
                             $filteredServices = $fnbServices->where('category', $selectedFoodCategory)->values();
                         @endphp
-                        <div class="max-h-[260px] overflow-y-auto space-y-2 pr-1">
+                        <div class="max-h-[260px] overflow-y-auto space-y-2 pr-1 custom-scrollbar">
                             @forelse($filteredServices as $service)
                                 <div class="flex items-center justify-between p-3 rounded-[var(--radius-sm)] border border-[var(--border-color)] bg-[var(--bg-secondary)]/50">
                                     <div class="flex items-center gap-3">
