@@ -216,7 +216,6 @@
 
                 {{-- Right: Branch Switcher & Actions --}}
                 <div class="flex items-center gap-4">
-                    @livewire('dashboard.branch-selector')
 
                     {{-- Invert Mode Toggle Button --}}
                     <button @click="darkMode = !darkMode; localStorage.setItem('darkMode', darkMode); document.documentElement.classList.toggle('dark', darkMode)" 
