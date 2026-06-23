@@ -80,6 +80,19 @@ class BookingService
                 ]
             );
 
+            // Update/fill with latest registration details
+            $guest->fill([
+                'name' => $data['guest_name'],
+                'phone' => $data['guest_phone'] ?? $guest->phone,
+                'email' => $data['guest_email'] ?? $guest->email,
+                'address' => $data['guest_address'] ?? $guest->address,
+                'profession' => $data['guest_profession'] ?? null,
+                'company' => $data['guest_company'] ?? null,
+                'nationality' => $data['guest_nationality'] ?? 'Indonesian',
+                'birth_date' => !empty($data['guest_birth_date']) ? $data['guest_birth_date'] : null,
+                'member_no' => $data['guest_member_no'] ?? null,
+            ])->save();
+
             // Prevent double booking
             if (!$this->isRoomAvailable($roomId, $checkIn, $checkOut)) {
                 throw new InvalidArgumentException('The selected room is not available for the chosen dates.');
@@ -100,6 +113,13 @@ class BookingService
                 'number_of_guests' => $data['number_of_guests'] ?? 1,
                 'status' => 'confirmed',
                 'total_price' => $roomCharges,
+                'arrival_time' => $data['arrival_time'] ?? null,
+                'box_no' => $data['box_no'] ?? null,
+                'box_issued_by' => $data['box_issued_by'] ?? null,
+                'box_date' => !empty($data['box_date']) ? $data['box_date'] : null,
+                'payment_method' => $data['payment_method'] ?? 'cash',
+                'notes' => $data['notes'] ?? null,
+                'book_by' => $data['book_by'] ?? null,
             ]);
 
             // Create guest bill

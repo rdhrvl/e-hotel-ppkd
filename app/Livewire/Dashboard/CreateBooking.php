@@ -140,10 +140,22 @@ class CreateBooking extends Component
                         'guest_phone' => $this->guestPhone,
                         'guest_email' => $this->guestEmail,
                         'guest_address' => $this->guestAddress,
+                        'guest_profession' => $this->guestProfession,
+                        'guest_company' => $this->guestCompany,
+                        'guest_nationality' => $this->guestNationality,
+                        'guest_birth_date' => $this->guestBirthDate,
+                        'guest_member_no' => $this->guestMemberNo,
                         'room_id' => $item['room_id'],
                         'check_in_date' => $this->arrivalDate,
                         'check_out_date' => $this->departureDate,
                         'number_of_guests' => $this->noOfPerson,
+                        'arrival_time' => $this->arrivalTime,
+                        'box_no' => $this->boxNo,
+                        'box_issued_by' => $this->boxIssuedBy,
+                        'box_date' => $this->boxDate,
+                        'payment_method' => $this->paymentMethod,
+                        'notes' => $this->additionalNotes,
+                        'book_by' => $this->receptionist,
                     ]);
 
                     $bookingUpfrontAmount = 0.0;
@@ -203,7 +215,7 @@ class CreateBooking extends Component
             session()->forget('cart');
 
             session()->flash('success', 'Bookings confirmed successfully!');
-            return redirect()->route('room-availability');
+            return redirect()->route('bookings');
         } catch (\Exception $e) {
             $this->addError('roomId', $e->getMessage());
         }

@@ -18,6 +18,15 @@ class Guest extends Model
         'phone',
         'identity_number',
         'address',
+        'profession',
+        'company',
+        'nationality',
+        'birth_date',
+        'member_no',
+    ];
+
+    protected $casts = [
+        'birth_date' => 'date',
     ];
 
     /** @return HasMany<Booking, $this> */

@@ -41,7 +41,7 @@
             {{-- Brand Logo --}}
             <div class="flex h-20 items-center justify-between px-5 border-b border-[var(--border-color)]">
                 <a href="{{ route('dashboard') }}" class="flex items-center gap-3 group">
-                    <img src="/img/logo-ppkd.png" alt="PPKD Logo" class="h-[40px] w-auto">
+                    <img src="{{ asset('img/logo-ppkdjp.png') }}" alt="PPKD Logo" class="h-[40px] w-auto">
                     <div>
                         <h1 class="text-[18px] font-bold tracking-tight text-[var(--text-primary)]">PPKD Hotel</h1>
                     </div>
@@ -216,7 +216,6 @@
 
                 {{-- Right: Branch Switcher & Actions --}}
                 <div class="flex items-center gap-4">
-                    @livewire('dashboard.branch-selector')
 
                     {{-- Invert Mode Toggle Button --}}
                     <button @click="darkMode = !darkMode; localStorage.setItem('darkMode', darkMode); document.documentElement.classList.toggle('dark', darkMode)" 
