@@ -84,7 +84,20 @@ class Room extends Model
      */
     public function activeBooking(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
-        return $this->hasOne(Booking::class)->where('status', 'checked_in');
+        return $this->hasOne(Booking::class)->where('status', 'checked_in')->latestOfMany('created_at');
+    }
+
+    /**
+     * Get the current relevant booking for this room (confirmed or checked_in).
+     * Used for reserved/ready rooms where a guest name should still be shown.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasOne<Booking, $this>
+     */
+    public function currentBooking(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Booking::class)
+            ->whereIn('status', ['confirmed', 'checked_in'])
+            ->latestOfMany('created_at');
     }
 
     /**

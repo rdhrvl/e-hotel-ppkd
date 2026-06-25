@@ -44,6 +44,80 @@ class Users extends Component
     public ?int $deletingUserId = null;
     public string $deletingUserName = '';
 
+    // Roles & Permissions tab
+    public string $activeTab = 'staff';
+    public bool $showRoleModal = false;
+    public ?int $editingRoleId = null;
+    public string $roleName = '';
+    public string $roleSlug = '';
+    public array $rolePermissions = [];
+
+    // Delete role confirmation
+    public bool $showDeleteRoleModal = false;
+    public ?int $deletingRoleId = null;
+    public string $deletingRoleName = '';
+
+    public array $pagesList = [
+        'dashboard' => [
+            'name' => 'Dashboard',
+            'actions' => ['view' => 'View']
+        ],
+        'room_availability' => [
+            'name' => 'Room Availability',
+            'actions' => ['view' => 'View']
+        ],
+        'rooms' => [
+            'name' => 'Rooms',
+            'actions' => ['view' => 'View', 'create' => 'Create', 'edit' => 'Edit', 'delete' => 'Delete']
+        ],
+        'bookings' => [
+            'name' => 'Bookings',
+            'actions' => ['view' => 'View', 'create' => 'Create', 'edit' => 'Edit', 'delete' => 'Delete']
+        ],
+        'guests' => [
+            'name' => 'Guests',
+            'actions' => ['view' => 'View', 'create' => 'Create', 'edit' => 'Edit', 'delete' => 'Delete']
+        ],
+        'housekeeping' => [
+            'name' => 'Housekeeping',
+            'actions' => ['view' => 'View', 'create' => 'Create', 'edit' => 'Edit', 'delete' => 'Delete']
+        ],
+        'payments' => [
+            'name' => 'Payments',
+            'actions' => ['view' => 'View', 'create' => 'Create', 'edit' => 'Edit', 'delete' => 'Delete']
+        ],
+        'fnb' => [
+            'name' => 'Food & Beverage',
+            'actions' => ['view' => 'View', 'create' => 'Create', 'edit' => 'Edit', 'delete' => 'Delete']
+        ],
+        'users' => [
+            'name' => 'Staff Accounts',
+            'actions' => ['view' => 'View', 'create' => 'Create', 'edit' => 'Edit', 'delete' => 'Delete']
+        ],
+        'services' => [
+            'name' => 'Extra Services',
+            'actions' => ['view' => 'View', 'create' => 'Create', 'edit' => 'Edit', 'delete' => 'Delete']
+        ],
+        'audit_logs' => [
+            'name' => 'Audit Logs',
+            'actions' => ['view' => 'View']
+        ],
+    ];
+
+    public array $allPermissions = [];
+
+    public function boot(): void
+    {
+        $this->allPermissions = [];
+        foreach ($this->pagesList as $pageKey => $pageInfo) {
+            foreach ($pageInfo['actions'] as $action => $actionLabel) {
+                $permissionKey = "{$action}_{$pageKey}";
+                $this->allPermissions[$permissionKey] = "{$pageInfo['name']}: {$actionLabel}";
+            }
+        }
+        $this->allPermissions['view_booking'] = 'Bookings: Create (Legacy)';
+    }
+
     public string $sortField = 'name';
     public string $sortDirection = 'asc';
 
@@ -218,5 +292,126 @@ class Users extends Component
 
         session()->flash('success', "User \"{$name}\" deleted.");
         $this->closeDeleteModal();
+    }
+
+    public function setTab(string $tab): void
+    {
+        $this->activeTab = $tab;
+        $this->resetErrorBag();
+    }
+
+    // ── Role & Permissions Operations ───────────────────────────────────
+
+    public function openAddRoleModal(): void
+    {
+        $this->reset(['editingRoleId', 'roleName', 'roleSlug']);
+        $this->rolePermissions = [];
+        foreach ($this->pagesList as $pageKey => $pageInfo) {
+            foreach (array_keys($pageInfo['actions']) as $action) {
+                $permissionKey = "{$action}_{$pageKey}";
+                $this->rolePermissions[$permissionKey] = false;
+            }
+        }
+        $this->showRoleModal = true;
+        $this->resetErrorBag();
+    }
+ 
+    public function openEditRoleModal(int $roleId): void
+    {
+        $role = Role::findOrFail($roleId);
+        $this->editingRoleId = $roleId;
+        $this->roleName = $role->name;
+        $this->roleSlug = $role->slug;
+        
+        $this->rolePermissions = [];
+        foreach ($this->pagesList as $pageKey => $pageInfo) {
+            foreach (array_keys($pageInfo['actions']) as $action) {
+                $permissionKey = "{$action}_{$pageKey}";
+                $this->rolePermissions[$permissionKey] = in_array($permissionKey, $role->permissions ?? [], true);
+            }
+        }
+        
+        $this->showRoleModal = true;
+        $this->resetErrorBag();
+    }
+ 
+    public function closeRoleModal(): void
+    {
+        $this->showRoleModal = false;
+        $this->resetErrorBag();
+    }
+ 
+    public function saveRole(): void
+    {
+        $this->validate([
+            'roleName' => 'required|string|max:255',
+            'roleSlug' => 'required|string|max:255|unique:roles,slug,' . ($this->editingRoleId ?? 'NULL'),
+        ]);
+ 
+        // Filter permissions dictionary for truthy checkboxes
+        $selectedPermissions = [];
+        foreach ($this->rolePermissions as $perm => $checked) {
+            if ($checked) {
+                $selectedPermissions[] = $perm;
+            }
+        }
+ 
+        // Add view_booking automatically if create_bookings is selected
+        if (in_array('create_bookings', $selectedPermissions, true) && !in_array('view_booking', $selectedPermissions, true)) {
+            $selectedPermissions[] = 'view_booking';
+        }
+ 
+        if ($this->editingRoleId) {
+            $role = Role::findOrFail($this->editingRoleId);
+            $role->update([
+                'name' => $this->roleName,
+                'slug' => $this->roleSlug,
+                'permissions' => $selectedPermissions,
+            ]);
+            session()->flash('success', "Role \"{$role->name}\" updated successfully.");
+        } else {
+            $role = Role::create([
+                'name' => $this->roleName,
+                'slug' => $this->roleSlug,
+                'permissions' => $selectedPermissions,
+            ]);
+            session()->flash('success', "Role \"{$role->name}\" created successfully.");
+        }
+ 
+        $this->closeRoleModal();
+    }
+
+    public function confirmDeleteRole(int $roleId): void
+    {
+        $role = Role::findOrFail($roleId);
+        if ($role->users()->count() > 0) {
+            session()->flash('error', "Cannot delete role \"{$role->name}\" because it is assigned to staff users.");
+            return;
+        }
+
+        if (in_array($role->slug, ['superadmin', 'admin', 'front_desk', 'housekeeping', 'fnb'], true)) {
+            session()->flash('error', "System roles like \"{$role->name}\" cannot be deleted.");
+            return;
+        }
+
+        $this->deletingRoleId = $roleId;
+        $this->deletingRoleName = $role->name;
+        $this->showDeleteRoleModal = true;
+    }
+
+    public function closeDeleteRoleModal(): void
+    {
+        $this->showDeleteRoleModal = false;
+        $this->deletingRoleId = null;
+    }
+
+    public function deleteRole(): void
+    {
+        $role = Role::findOrFail($this->deletingRoleId);
+        $name = $role->name;
+        $role->delete();
+
+        session()->flash('success', "Role \"{$name}\" deleted successfully.");
+        $this->closeDeleteRoleModal();
     }
 }

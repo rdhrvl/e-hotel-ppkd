@@ -70,27 +70,53 @@ class Housekeeping extends Component
     {
         $branchId = session('selected_branch_id', 1);
 
-        // Fetch housekeeping tasks scoped to current branch (paginated)
-        $tasksQuery = HousekeepingTask::with(['room.roomType', 'staff'])
+        // Base query scoped to branch + optional status filter
+        $baseQuery = HousekeepingTask::with(['room.roomType', 'room.currentBooking.guest', 'staff'])
             ->whereHas('room', function ($q) use ($branchId) {
                 $q->where('branch_id', $branchId);
             })
             ->when($this->filterStatus, fn($q) => $q->where('status', $this->filterStatus))
             ->orderBy($this->sortField, $this->sortDirection);
 
-        $tasks = $tasksQuery->paginate(10);
+        // Paginated full list (for pagination controls)
+        $tasks = (clone $baseQuery)->paginate(10);
 
         if ($this->getPage() > $tasks->lastPage()) {
             $this->setPage(max(1, $tasks->lastPage()));
-            $tasks = $tasksQuery->paginate(10);
+            $tasks = (clone $baseQuery)->paginate(10);
         }
 
-        // Get dirty/cleaning rooms that need tasks
-        $unassignedRooms = Room::where('branch_id', $branchId)
-            ->whereIn('status', ['cleaning', 'maintenance'])
-            ->whereDoesntHave('housekeepingTasks', function ($q) {
-                $q->where('status', '!=', 'completed');
+        // Pre Check-In tasks: room status = 'reserved' or 'cleaning' with a confirmed booking
+        $preCheckInTasks = HousekeepingTask::with(['room.roomType', 'room.currentBooking.guest', 'staff'])
+            ->whereHas('room', function ($q) use ($branchId) {
+                $q->where('branch_id', $branchId)
+                  ->whereHas('bookings', fn($bq) => $bq->where('status', 'confirmed'));
             })
+            ->when($this->filterStatus, fn($q) => $q->where('status', $this->filterStatus))
+            ->orderBy($this->sortField, $this->sortDirection)
+            ->get();
+
+        // Pre Check-Out tasks: room status = 'occupied' (checked-in guests)
+        $preCheckOutTasks = HousekeepingTask::with(['room.roomType', 'room.activeBooking.guest', 'staff'])
+            ->whereHas('room', function ($q) use ($branchId) {
+                $q->where('branch_id', $branchId)
+                  ->where('status', 'occupied');
+            })
+            ->when($this->filterStatus, fn($q) => $q->where('status', $this->filterStatus))
+            ->orderBy($this->sortField, $this->sortDirection)
+            ->get();
+
+        // Get IDs already in pre check-in or pre check-out to exclude from general
+        $excludeIds = $preCheckInTasks->pluck('id')->merge($preCheckOutTasks->pluck('id'))->unique();
+
+        // General tasks: everything else
+        $generalTasks = HousekeepingTask::with(['room.roomType', 'staff'])
+            ->whereHas('room', function ($q) use ($branchId) {
+                $q->where('branch_id', $branchId);
+            })
+            ->whereNotIn('id', $excludeIds)
+            ->when($this->filterStatus, fn($q) => $q->where('status', $this->filterStatus))
+            ->orderBy($this->sortField, $this->sortDirection)
             ->get();
 
         // Housekeeping staff
@@ -99,15 +125,17 @@ class Housekeeping extends Component
         })->get();
 
         // Detailed room for details popup modal
-        $detailRoom = $this->detailRoomId ? Room::with(['roomType', 'activeBooking.guest', 'housekeepingTasks' => function ($q) {
+        $detailRoom = $this->detailRoomId ? Room::with(['roomType', 'activeBooking.guest', 'currentBooking.guest', 'housekeepingTasks' => function ($q) {
             $q->latest();
         }])->find($this->detailRoomId) : null;
 
         return view('livewire.dashboard.housekeeping', [
-            'tasks' => $tasks,
-            'unassignedRooms' => $unassignedRooms,
+            'tasks'           => $tasks,
+            'preCheckInTasks' => $preCheckInTasks,
+            'preCheckOutTasks'=> $preCheckOutTasks,
+            'generalTasks'    => $generalTasks,
             'housekeepingStaff' => $housekeepingStaff,
-            'detailRoom' => $detailRoom,
+            'detailRoom'      => $detailRoom,
         ]);
     }
 

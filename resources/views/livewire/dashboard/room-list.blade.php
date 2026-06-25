@@ -155,13 +155,21 @@
                             $cardClass = 'bg-[var(--danger-bg)] border-[var(--border-color)] text-[var(--danger)] hover:bg-[var(--danger-bg)]/80';
                             $numberClass = 'text-[var(--danger)]';
                             $statusClass = 'text-[var(--danger)]/80';
-                            $statusLabelText = $room->activeBooking?->guest?->name ? strtoupper($room->activeBooking->guest->name) : 'OCCUPIED';
+                            $guestName = $room->activeBooking?->guest?->name ?? $room->currentBooking?->guest?->name;
+                            $statusLabelText = $guestName ? strtoupper($guestName) : 'OCCUPIED';
                             $showRedDot = true;
                         } elseif ($room->status === 'reserved') {
                             $cardClass = 'bg-[var(--warning-bg)] border-[var(--border-color)] text-[var(--warning)] hover:bg-[var(--warning-bg)]/80';
                             $numberClass = 'text-[var(--warning)]';
                             $statusClass = 'text-[var(--warning)]/80';
-                            $statusLabelText = 'RESERVED';
+                            $guestName = $room->currentBooking?->guest?->name;
+                            $statusLabelText = $guestName ? strtoupper($guestName) : 'RESERVED';
+                        } elseif ($room->status === 'ready') {
+                            $cardClass = 'bg-[var(--info-bg)] border-[var(--border-color)] text-[var(--info)] hover:bg-[var(--info-bg)]/80';
+                            $numberClass = 'text-[var(--info)]';
+                            $statusClass = 'text-[var(--info)]/80';
+                            $guestName = $room->currentBooking?->guest?->name;
+                            $statusLabelText = $guestName ? strtoupper($guestName) : 'READY';
                         } else {
                             $cardClass = 'bg-[var(--bg-secondary)] border-[var(--border-color)] text-[var(--text-secondary)] hover:bg-[#eae9e4]';
                             $numberClass = 'text-[var(--text-primary)]';
@@ -477,27 +485,28 @@
                           <span class="text-[var(--text-primary)] font-bold">{{ $selectedRoom->roomType->capacity }} Pax</span>
                       </div>
 
-                      @if($selectedRoom->status === 'occupied' || $selectedRoom->status === 'reserved')
+                      @php
+                          $bookingForDisplay = $selectedRoom->activeBooking ?? $selectedRoom->currentBooking;
+                      @endphp
+                      @if(in_array($selectedRoom->status, ['occupied', 'reserved', 'ready']) && $bookingForDisplay)
                           <div class="flex justify-between items-center">
                               <span class="text-[var(--text-muted)] font-medium">Occupant</span>
-                              <span class="text-[var(--warning)] font-bold uppercase tracking-wide">
-                                  {{ $selectedRoom->activeBooking?->guest?->name ?: 'N/A' }}
+                              <span class="text-[var(--text-primary)] font-bold">
+                                  {{ $bookingForDisplay->guest?->name ?: 'N/A' }}
                               </span>
                           </div>
-                          @if($selectedRoom->activeBooking)
-                              <div class="flex justify-between items-center">
-                                  <span class="text-[var(--text-muted)] font-medium">Check-In</span>
-                                  <span class="text-[var(--text-primary)] font-bold">
-                                      {{ \Carbon\Carbon::parse($selectedRoom->activeBooking->check_in_date)->format('d M Y') }}
-                                  </span>
-                              </div>
-                              <div class="flex justify-between items-center">
-                                  <span class="text-[var(--text-muted)] font-medium">Check-Out</span>
-                                  <span class="text-[var(--text-primary)] font-bold">
-                                      {{ \Carbon\Carbon::parse($selectedRoom->activeBooking->check_out_date)->format('d M Y') }}
-                                  </span>
-                              </div>
-                          @endif
+                          <div class="flex justify-between items-center">
+                              <span class="text-[var(--text-muted)] font-medium">Check-In</span>
+                              <span class="text-[var(--text-primary)] font-bold">
+                                  {{ \Carbon\Carbon::parse($bookingForDisplay->check_in_date)->format('d M Y') }}
+                              </span>
+                          </div>
+                          <div class="flex justify-between items-center">
+                              <span class="text-[var(--text-muted)] font-medium">Check-Out</span>
+                              <span class="text-[var(--text-primary)] font-bold">
+                                  {{ \Carbon\Carbon::parse($bookingForDisplay->check_out_date)->format('d M Y') }}
+                              </span>
+                          </div>
                       @endif
 
                       <div class="flex flex-col gap-1.5 pt-1">

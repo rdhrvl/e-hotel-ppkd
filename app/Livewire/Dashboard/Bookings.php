@@ -25,20 +25,32 @@ class Bookings extends Component
     public bool $showCheckInModal = false;
     public ?int $bookingIdToCheckIn = null;
     public float $depositAmount = 50000;
+    public string $checkInPaymentMethod = 'cash';
 
     // Check Out Modal
     public bool $showCheckOutModal = false;
     public ?int $bookingIdToCheckOut = null;
     public string $paymentMethod = 'cash';
+    public bool $inspectionSkipped = false;
 
     // Inspection & Damage Settlement
     public bool $confirmInspection = false;
     public string $damageDescription = '';
     public float $damageAmount = 0.00;
-
-    // FD Housekeeping Report Review
     public bool $showReviewModal = false;
     public ?int $bookingIdForReview = null;
+    public bool $isViewOnlyReview = false;
+
+    public ?int $expandedBookingId = null;
+
+    public function toggleExpandRow(int $bookingId): void
+    {
+        if ($this->expandedBookingId === $bookingId) {
+            $this->expandedBookingId = null;
+        } else {
+            $this->expandedBookingId = $bookingId;
+        }
+    }
 
     // F&B Ordering
     public bool $showOrderFoodModal = false;
@@ -105,15 +117,47 @@ class Bookings extends Component
             $bookings = $bookingsQuery->paginate(10);
         }
 
-        $checkInBooking = $this->bookingIdToCheckIn ? Booking::with('room.roomType')->find($this->bookingIdToCheckIn) : null;
+        $checkInBooking = $this->bookingIdToCheckIn ? Booking::with(['room.roomType', 'payments'])->find($this->bookingIdToCheckIn) : null;
         $checkOutBooking = $this->bookingIdToCheckOut ? Booking::with(['room.roomType', 'guestBill', 'bookingItems.service', 'payments'])->find($this->bookingIdToCheckOut) : null;
 
         $latestTask = $checkOutBooking ? \App\Models\HousekeepingTask::with('staff')->where('room_id', $checkOutBooking->room_id)->where('created_at', '>=', $checkOutBooking->created_at)->latest()->first() : null;
         $roomIssues = $checkOutBooking ? \App\Models\Notification::where('room_id', $checkOutBooking->room_id)->where('priority', 'high')->where('created_at', '>=', $checkOutBooking->created_at)->get() : collect();
 
         $reviewBooking = $this->bookingIdForReview ? Booking::with(['room.roomType', 'guestBill', 'bookingItems.service', 'payments'])->find($this->bookingIdForReview) : null;
-        $reviewTask = $reviewBooking ? \App\Models\HousekeepingTask::with('staff')->where('room_id', $reviewBooking->room_id)->where('created_at', '>=', $reviewBooking->created_at)->latest()->first() : null;
+        $reviewTasks = $reviewBooking ? \App\Models\HousekeepingTask::with('staff')->where('room_id', $reviewBooking->room_id)->where('created_at', '>=', $reviewBooking->created_at)->orderBy('created_at', 'desc')->get() : collect();
+        $reviewTask = $reviewTasks->first();
         $reviewIssues = $reviewBooking ? \App\Models\Notification::where('room_id', $reviewBooking->room_id)->where('priority', 'high')->where('created_at', '>=', $reviewBooking->created_at)->get() : collect();
+
+        // Partition tasks by stage
+        $preCheckInTasks = collect();
+        $preCheckoutTasks = collect();
+        $postCheckoutTasks = collect();
+
+        if ($reviewBooking) {
+            $checkInLog = \App\Models\AuditLog::where('entity_type', Booking::class)
+                ->where('entity_id', $reviewBooking->id)
+                ->where('action', 'Check-In Guest')
+                ->first();
+            $checkInTime = $checkInLog ? $checkInLog->created_at : null;
+
+            $checkOutLog = \App\Models\AuditLog::where('entity_type', Booking::class)
+                ->where('entity_id', $reviewBooking->id)
+                ->where('action', 'Check-Out Guest')
+                ->first();
+            $checkOutTime = $checkOutLog ? $checkOutLog->created_at : null;
+
+            foreach ($reviewTasks as $task) {
+                if ($checkInTime && $task->created_at < $checkInTime) {
+                    $preCheckInTasks->push($task);
+                } elseif (!$checkInTime) {
+                    $preCheckInTasks->push($task);
+                } elseif ($checkOutTime && $task->created_at > $checkOutTime) {
+                    $postCheckoutTasks->push($task);
+                } else {
+                    $preCheckoutTasks->push($task);
+                }
+            }
+        }
 
         $fnbServices = \App\Models\Service::where('type', 'f_and_b')
             ->where('is_active', true)
@@ -128,9 +172,14 @@ class Bookings extends Component
             'roomIssues' => $roomIssues,
             'reviewBooking' => $reviewBooking,
             'reviewTask' => $reviewTask,
+            'reviewTasks' => $reviewTasks,
+            'preCheckInTasks' => $preCheckInTasks,
+            'preCheckoutTasks' => $preCheckoutTasks,
+            'postCheckoutTasks' => $postCheckoutTasks,
             'reviewIssues' => $reviewIssues,
             'fnbServices' => $fnbServices,
             'orderBooking' => $orderBooking,
+            'isViewOnlyReview' => $this->isViewOnlyReview,
         ]);
     }
 
@@ -150,9 +199,22 @@ class Bookings extends Component
     // CHECK-IN OPERATIONS
     public function openCheckInModal(int $bookingId): void
     {
-        $booking = Booking::findOrFail($bookingId);
+        $booking = Booking::with('payments')->findOrFail($bookingId);
         $this->bookingIdToCheckIn = $booking->id;
-        $this->depositAmount = 50000;
+
+        $upfrontPayment = $booking->payments->first(function ($p) use ($booking) {
+            return $p->created_at <= $booking->created_at->addMinutes(5);
+        });
+        $upfrontAmount = $upfrontPayment ? (float) $upfrontPayment->amount : 0.0;
+
+        if ($upfrontAmount > 0) {
+            $this->depositAmount = 0;
+            $this->checkInPaymentMethod = $upfrontPayment->payment_method ?? 'cash';
+        } else {
+            $this->depositAmount = 50000;
+            $this->checkInPaymentMethod = 'cash';
+        }
+
         $this->showCheckInModal = true;
     }
 
@@ -176,7 +238,7 @@ class Bookings extends Component
         }
 
         try {
-            $bookingService->checkIn($booking, (float) $this->depositAmount);
+            $bookingService->checkIn($booking, (float) $this->depositAmount, $this->checkInPaymentMethod);
             session()->flash('success', "Guest {$booking->guest->name} checked in successfully!");
             $this->closeCheckInModal();
         } catch (\Exception $e) {
@@ -195,6 +257,7 @@ class Bookings extends Component
         $this->damageDescription = '';
         $this->damageAmount = 0.00;
         
+        $this->inspectionSkipped = false;
         $this->showCheckOutModal = true;
     }
 
@@ -202,6 +265,40 @@ class Bookings extends Component
     {
         $this->showCheckOutModal = false;
         $this->bookingIdToCheckOut = null;
+    }
+
+    public function requestCheckoutInspection(int $bookingId): void
+    {
+        $booking = Booking::findOrFail($bookingId);
+        $room = $booking->room;
+
+        $staff = \App\Models\User::whereHas('role', function ($q) {
+            $q->where('slug', 'housekeeping');
+        })->first() ?? auth()->user() ?? \App\Models\User::first();
+
+        \App\Models\HousekeepingTask::create([
+            'room_id' => $room->id,
+            'staff_id' => $staff->id,
+            'schedule_date' => \Illuminate\Support\Carbon::now()->toDateString(),
+            'status' => 'in_progress',
+        ]);
+
+        $room->update(['status' => 'cleaning']);
+
+        app(\App\Services\NotificationService::class)->dispatchCustomAlert(
+            $room,
+            auth()->user() ?? \App\Models\User::first(),
+            "Room {$room->room_number} checkout inspection requested.",
+            'medium',
+            true
+        );
+
+        session()->flash('success', 'Checkout room inspection requested.');
+    }
+
+    public function skipInspection(): void
+    {
+        $this->inspectionSkipped = true;
     }
 
     public function applyDamageCharge(): void
@@ -231,6 +328,7 @@ class Bookings extends Component
             $bill = $booking->guestBill;
             if ($bill) {
                 $bill->increment('total_extra_charges', $this->damageAmount);
+                $bill->update(['status' => $bill->calculateStatus()]);
             }
         });
 
@@ -288,13 +386,14 @@ class Bookings extends Component
         }
     }
 
-    public function openReviewModal(int $bookingId): void
+    public function openReviewModal(int $bookingId, bool $viewOnly = false): void
     {
         $booking = Booking::findOrFail($bookingId);
         $this->bookingIdForReview = $booking->id;
         $this->bookingIdToCheckOut = $booking->id; // for applyDamageCharge compatibility
         $this->damageDescription = '';
         $this->damageAmount = 0.00;
+        $this->isViewOnlyReview = $viewOnly;
         $this->showReviewModal = true;
     }
 

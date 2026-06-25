@@ -214,7 +214,7 @@ class RoomList extends Component
         $offset = ($this->page - 1) * $itemsPerPage;
         $floorNumbers = $allFloors->slice($offset, $itemsPerPage)->toArray();
 
-        $rooms = Room::with(['roomType', 'activeBooking.guest'])
+        $rooms = Room::with(['roomType', 'activeBooking.guest', 'currentBooking.guest'])
             ->where('branch_id', $branchId)
             ->whereIn('floor', $floorNumbers)
             ->when($this->filterType, fn($q) => $q->where('room_type_id', $this->filterType))
@@ -231,7 +231,7 @@ class RoomList extends Component
         $roomTypes = RoomType::all();
         $services = Service::where('type', '!=', 'f_and_b')->get();
 
-        $selectedRoom = $this->selectedRoomId ? Room::with(['roomType', 'activeBooking.guest'])->find($this->selectedRoomId) : null;
+        $selectedRoom = $this->selectedRoomId ? Room::with(['roomType', 'activeBooking.guest', 'currentBooking.guest'])->find($this->selectedRoomId) : null;
         $checkInBooking = $this->bookingIdToCheckIn ? Booking::with('guest')->find($this->bookingIdToCheckIn) : null;
         $checkOutBooking = $this->bookingIdToCheckOut ? Booking::with(['guestBill', 'bookingItems.service', 'guest'])->find($this->bookingIdToCheckOut) : null;
 

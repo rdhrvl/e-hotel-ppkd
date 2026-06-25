@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace App\Livewire\Dashboard;
 
-use App\Models\Service;
 use App\Models\FoodOrder;
 use App\Models\FoodOrderItem;
+use App\Models\Service;
 use App\Services\NotificationService;
+use Illuminate\Contracts\View\View;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -21,30 +22,46 @@ class Fnb extends Component
 
     // View state
     public string $activeTab = 'orders'; // 'orders' or 'menu'
+
     public string $ordersFilter = 'active'; // 'active', 'completed', 'all'
 
     // Menu Item properties (Add)
     public bool $showAddModal = false;
+
     public string $name = '';
+
     public float $price = 0;
+
     public string $category = 'Main Course';
+
     public string $description = '';
+
     public bool $isActive = true;
+
     public string $imagePath = '';
 
     // Menu Item properties (Edit)
     public bool $showEditModal = false;
+
     public ?int $editingMenuItemId = null;
+
     public string $editName = '';
+
     public float $editPrice = 0;
+
     public string $editCategory = 'Main Course';
+
     public string $editDescription = '';
+
     public bool $editIsActive = true;
+
     public string $editImagePath = '';
 
     // Menu Item properties (Delete)
     public bool $showDeleteModal = false;
+
     public ?int $deletingMenuItemId = null;
+
     public string $deletingMenuItemName = '';
 
     private const DEFAULT_CATEGORIES = [
@@ -58,21 +75,26 @@ class Fnb extends Component
     public array $categories = self::DEFAULT_CATEGORIES;
 
     public string $newCategory = '';
+
     public string $categoryFilter = '';
 
     // Category Edit
     public bool $showEditCategoryModal = false;
+
     public string $editingCategory = '';
+
     public string $editCategoryName = '';
 
     // Category Delete
     public bool $showDeleteCategoryModal = false;
+
     public string $deletingCategory = '';
+
     public int $deletingCategoryItemCount = 0;
 
     public function mount(): void
     {
-        if (! auth()->user()->isFnb()) {
+        if (auth()->user()->cannot('accessFnb')) {
             abort(403, 'Unauthorized access to F&B Dashboard.');
         }
 
@@ -107,6 +129,7 @@ class Fnb extends Component
         $inUse = Service::where('type', 'f_and_b')->where('category', $category)->exists();
         if ($inUse) {
             session()->flash('error', "Cannot remove \"{$category}\" — it is used by existing menu items.");
+
             return;
         }
 
@@ -139,11 +162,13 @@ class Fnb extends Component
 
         if ($trimmed === $this->editingCategory) {
             $this->closeEditCategoryModal();
+
             return;
         }
 
         if (in_array($trimmed, $this->categories)) {
             $this->addError('editCategoryName', "Category \"{$trimmed}\" already exists.");
+
             return;
         }
 
@@ -190,6 +215,7 @@ class Fnb extends Component
         if ($this->deletingCategoryItemCount > 0) {
             session()->flash('error', "Cannot delete \"{$this->deletingCategory}\" — reassign or remove its {$this->deletingCategoryItemCount} menu items first.");
             $this->closeDeleteCategoryModal();
+
             return;
         }
 
@@ -205,10 +231,10 @@ class Fnb extends Component
         $this->closeDeleteCategoryModal();
     }
 
-    public function render(): \Illuminate\Contracts\View\View
+    public function render(): View
     {
         // Enforce access in render just in case
-        if (! auth()->user()->isFnb()) {
+        if (auth()->user()->cannot('accessFnb')) {
             abort(403, 'Unauthorized access to F&B Dashboard.');
         }
 
@@ -357,7 +383,7 @@ class Fnb extends Component
     public function deleteMenuItem(): void
     {
         $id = $this->deletingMenuItemId;
-        
+
         // Safety check: is this menu item referenced by orders still in progress?
         $inProgress = FoodOrderItem::where('service_id', $id)
             ->whereHas('foodOrder', function ($query) {
@@ -368,6 +394,7 @@ class Fnb extends Component
         if ($inProgress) {
             session()->flash('error', "Cannot delete \"{$this->deletingMenuItemName}\" because it is associated with active orders currently in progress.");
             $this->closeDeleteModal();
+
             return;
         }
 
@@ -384,7 +411,7 @@ class Fnb extends Component
     public function advanceOrderStatus(int $orderId, NotificationService $notificationService): void
     {
         $order = FoodOrder::with('booking.room.roomType', 'booking.guest')->findOrFail($orderId);
-        
+
         $statusSequence = [
             'processed' => 'preparing',
             'preparing' => 'delivered',
@@ -404,7 +431,7 @@ class Fnb extends Component
         if ($nextStatus === 'completed') {
             $booking = $order->booking;
             $message = "Food order #{$order->id} for Room {$booking->room->room_number} ({$booking->guest->name}) is completed and delivered!";
-            
+
             $notificationService->dispatchFoodOrderAlert($booking, $message, 'front_desk', 'medium', false);
             session()->flash('success', "Order #{$order->id} marked as completed and Front Desk has been notified.");
         } else {

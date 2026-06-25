@@ -15,7 +15,15 @@ class Role extends Model
     protected $fillable = [
         'name',
         'slug',
+        'permissions',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'permissions' => 'array',
+        ];
+    }
 
     /** @return HasMany<User, $this> */
     public function users(): HasMany

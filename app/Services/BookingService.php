@@ -147,11 +147,21 @@ class BookingService
     }
 
     /**
+     * Derive bill status from current totals.
+     * unpaid → partially_paid → paid
+     */
+    private function recalculateBillStatus(GuestBill $bill): string
+    {
+        $bill->refresh();
+        return $bill->calculateStatus();
+    }
+
+    /**
      * Check-in a guest for their booking.
      */
-    public function checkIn(Booking $booking, float $depositAmount): void
+    public function checkIn(Booking $booking, float $depositAmount, string $paymentMethod = 'cash'): void
     {
-        DB::transaction(function () use ($booking, $depositAmount) {
+        DB::transaction(function () use ($booking, $depositAmount, $paymentMethod) {
             if ($booking->status !== 'confirmed' && $booking->status !== 'pending') {
                 throw new InvalidArgumentException('Only pending or confirmed bookings can be checked in.');
             }
@@ -172,10 +182,12 @@ class BookingService
                     Payment::create([
                         'booking_id' => $booking->id,
                         'amount' => $depositAmount,
-                        'method' => 'cash', // default to cash
+                        'method' => $paymentMethod === 'bank_transfer' ? 'transfer' : $paymentMethod,
                         'status' => 'paid',
                     ]);
                 }
+
+                $bill->update(['status' => $this->recalculateBillStatus($bill)]);
             }
 
             $this->logActivity(
@@ -201,7 +213,6 @@ class BookingService
             $service = Service::findOrFail($serviceId);
             $price = (float) $service->price;
 
-            // Create booking item
             $item = BookingItem::create([
                 'booking_id' => $booking->id,
                 'service_id' => $serviceId,
@@ -210,10 +221,10 @@ class BookingService
                 'notes' => $notes,
             ]);
 
-            // Update bill extra charges
             $bill = $booking->guestBill;
             if ($bill) {
                 $bill->increment('total_extra_charges', $price * $quantity);
+                $bill->update(['status' => $this->recalculateBillStatus($bill)]);
             }
 
             $this->logActivity(
@@ -242,46 +253,47 @@ class BookingService
                 throw new InvalidArgumentException('Guest bill not found.');
             }
 
-            // Calculate final payment due: total - deposit - already paid
-            $totalAmount = $bill->total_room_charges + $bill->total_extra_charges;
-            $dueAmount = $totalAmount - $bill->deposit_amount - $bill->paid_amount;
+            $totalAmount = (float) $bill->total_room_charges + (float) $bill->total_extra_charges;
+            $dueAmount = $totalAmount - (float) $bill->deposit_amount - (float) $bill->paid_amount;
 
             if ($dueAmount > 0) {
-                // Record final payment
                 Payment::create([
                     'booking_id' => $booking->id,
                     'amount' => $dueAmount,
                     'method' => $paymentMethod === 'bank_transfer' ? 'transfer' : $paymentMethod,
                     'status' => 'paid',
                 ]);
+                $bill->increment('paid_amount', $dueAmount);
+            } elseif ($dueAmount < 0) {
+                // ponytail: record overpayment for front desk to handle (refund or credit)
+                $bill->update(['overpayment_amount' => abs($dueAmount)]);
             }
 
-            // Update bill
-            $bill->update([
-                'paid_amount' => $bill->paid_amount + $dueAmount,
-                'status' => 'paid',
-            ]);
+            $bill->update(['status' => 'paid']);
 
             $oldBooking = $booking->toArray();
             $booking->update(['status' => 'checked_out']);
 
-            // Free room and set status to cleaning
-            $booking->room->update([
-                'status' => 'cleaning',
-            ]);
+            $booking->room->update(['status' => 'cleaning']);
 
-            // Create Housekeeping Task
-            // Find housekeeping staff if available, otherwise leave unassigned/assign to first housekeeping user
-            $housekeeper = User::whereHas('role', function ($q) {
-                $q->where('slug', 'housekeeping');
-            })->first();
+            // Avoid duplicate housekeeping tasks if one was already requested and is in progress/scheduled
+            $hasActiveTask = HousekeepingTask::where('room_id', $booking->room_id)
+                ->where('created_at', '>=', $booking->created_at)
+                ->whereIn('status', ['scheduled', 'in_progress'])
+                ->exists();
 
-            HousekeepingTask::create([
-                'room_id' => $booking->room_id,
-                'staff_id' => $housekeeper ? $housekeeper->id : 1, // fallback
-                'schedule_date' => Carbon::now()->toDateString(),
-                'status' => 'in_progress',
-            ]);
+            if (!$hasActiveTask) {
+                $housekeeper = User::whereHas('role', function ($q) {
+                    $q->where('slug', 'housekeeping');
+                })->first();
+
+                HousekeepingTask::create([
+                    'room_id' => $booking->room_id,
+                    'staff_id' => $housekeeper ? $housekeeper->id : 1,
+                    'schedule_date' => Carbon::now()->toDateString(),
+                    'status' => 'in_progress',
+                ]);
+            }
 
             $this->logActivity(
                 action: 'Check-Out Guest',

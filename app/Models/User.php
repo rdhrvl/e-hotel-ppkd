@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Carbon;
 
 /**
  * User model for the Hotel Management System.
@@ -18,10 +19,10 @@ use Illuminate\Notifications\Notifiable;
  * @property string $email
  * @property string $password
  * @property int|null $role_id
- * @property \Illuminate\Support\Carbon|null $email_verified_at
+ * @property Carbon|null $email_verified_at
  * @property string|null $remember_token
- * @property \Illuminate\Support\Carbon $created_at
- * @property \Illuminate\Support\Carbon $updated_at
+ * @property Carbon $created_at
+ * @property Carbon $updated_at
  */
 class User extends Authenticatable
 {
@@ -106,5 +107,11 @@ class User extends Authenticatable
     public function isFnb(): bool
     {
         return in_array($this->role?->slug, ['fnb', 'superadmin'], true);
+    }
+
+    /** Landing route name after login. All roles share the dashboard, which renders role-specific analytics. */
+    public function homeRoute(): string
+    {
+        return 'dashboard';
     }
 }

@@ -36,16 +36,16 @@ class AuthenticationFlowTest extends TestCase
     }
 
     /**
-     * Test authenticated user can access the dashboard.
+     * Test authenticated admin can access the dashboard.
      */
     public function test_authenticated_user_can_access_dashboard(): void
     {
         $user = User::create([
-            'name' => 'Front Desk User',
+            'name' => 'Admin User',
             'phone' => '081234567890',
-            'email' => 'frontdesk@example.com',
+            'email' => 'admin-dash@example.com',
             'password' => Hash::make('password'),
-            'role_id' => $this->frontDeskRole->id,
+            'role_id' => $this->adminRole->id,
         ]);
 
         $response = $this->actingAs($user)->get('/dashboard');

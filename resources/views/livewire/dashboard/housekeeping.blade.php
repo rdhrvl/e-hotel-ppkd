@@ -10,10 +10,172 @@
         </select>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {{-- Left: Tasks List --}}
-        <div class="lg:col-span-2 space-y-6">
-            <h3 class="text-base font-semibold text-[var(--text-primary)] mb-2">Today's Schedule</h3>
+    @php
+        /**
+         * Helper macro: renders a housekeeping task table section.
+         * $sectionTasks  – Collection of HousekeepingTask
+         * $guestColumn   – closure(task): string|null — returns guest name if any
+         */
+    @endphp
+
+    <div class="space-y-8">
+
+        {{-- ── Section 1: Pre Check-In ── --}}
+        @if($preCheckInTasks->isNotEmpty() || !$filterStatus)
+            <div>
+                <div class="flex items-center gap-3 mb-3">
+                    <h3 class="text-sm font-bold text-[var(--text-primary)] uppercase tracking-wide">Pre Check-In</h3>
+                    <span class="inline-flex items-center rounded-full bg-[var(--info-bg)] px-2.5 py-0.5 text-[10px] font-bold text-[var(--info)]">
+                        {{ $preCheckInTasks->count() }} task{{ $preCheckInTasks->count() !== 1 ? 's' : '' }}
+                    </span>
+                    <p class="text-xs text-[var(--text-muted)]">Rooms with a confirmed booking awaiting readiness inspection</p>
+                </div>
+
+                <div class="rounded border border-[var(--border-color)] bg-[var(--bg-card)] shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="sticky top-0 z-10 select-none">
+                                    <th class="px-4 py-3 text-xs font-semibold text-[var(--text-muted)] bg-[var(--bg-secondary)] border-b-2 border-[var(--border-color)]">Room</th>
+                                    <th class="px-4 py-3 text-xs font-semibold text-[var(--text-muted)] bg-[var(--bg-secondary)] border-b-2 border-[var(--border-color)]">Incoming Guest</th>
+                                    <th class="px-4 py-3 text-xs font-semibold text-[var(--text-muted)] bg-[var(--bg-secondary)] border-b-2 border-[var(--border-color)]">Assigned To</th>
+                                    <th class="px-4 py-3 text-xs font-semibold text-[var(--text-muted)] bg-[var(--bg-secondary)] border-b-2 border-[var(--border-color)] cursor-pointer hover:bg-[var(--bg-card-hover)] transition-colors" wire:click="sortBy('schedule_date')">
+                                        Schedule Date @if($sortField === 'schedule_date') {{$sortDirection === 'asc' ? '▲' : '▼'}} @endif
+                                    </th>
+                                    <th class="px-4 py-3 text-xs font-semibold text-[var(--text-muted)] bg-[var(--bg-secondary)] border-b-2 border-[var(--border-color)] cursor-pointer hover:bg-[var(--bg-card-hover)] transition-colors" wire:click="sortBy('status')">
+                                        Status @if($sortField === 'status') {{$sortDirection === 'asc' ? '▲' : '▼'}} @endif
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-[var(--border-color)] text-xs text-[var(--text-secondary)]">
+                                @forelse($preCheckInTasks as $task)
+                                    <tr class="hover:bg-[var(--bg-card-hover)] transition-colors even:bg-[var(--bg-primary)]/50 cursor-pointer" wire:click="openRoomDetailModal({{ $task->room->id }})">
+                                        <td class="px-4 py-3.5 text-sm border-b border-[var(--border-color)]">
+                                            <div class="font-bold text-[var(--info)] hover:underline">Room {{ $task->room->room_number }}</div>
+                                            <div class="text-[10px] text-[var(--text-muted)] mt-0.5">{{ $task->room->roomType->name }}</div>
+                                        </td>
+                                        <td class="px-4 py-3.5 text-sm border-b border-[var(--border-color)]">
+                                            @php $guestName = $task->room->currentBooking?->guest?->name; @endphp
+                                            @if($guestName)
+                                                <div class="font-semibold text-[var(--text-primary)]">{{ $guestName }}</div>
+                                                <div class="text-[10px] text-[var(--text-muted)]">
+                                                    {{ \Carbon\Carbon::parse($task->room->currentBooking->check_in_date)->format('d M Y') }}
+                                                </div>
+                                            @else
+                                                <span class="text-[var(--text-muted)]">—</span>
+                                            @endif
+                                        </td>
+                                        <td class="px-4 py-3.5 text-sm border-b border-[var(--border-color)]">
+                                            <div class="font-semibold text-[var(--text-primary)]">{{ $task->staff->name }}</div>
+                                        </td>
+                                        <td class="px-4 py-3.5 text-sm border-b border-[var(--border-color)] text-[var(--text-muted)] font-mono">
+                                            {{ \Carbon\Carbon::parse($task->schedule_date)->format('d M Y') }}
+                                        </td>
+                                        <td class="px-4 py-3.5 text-sm border-b border-[var(--border-color)]">
+                                            @if($task->status === 'scheduled')
+                                                <span class="inline-flex items-center rounded-[var(--radius-sm)] px-2.5 py-0.5 text-xs font-semibold border border-[var(--border-color)] bg-[var(--info-bg)] text-[var(--info)]">Scheduled</span>
+                                            @elseif($task->status === 'in_progress')
+                                                <span class="inline-flex items-center rounded-[var(--radius-sm)] px-2.5 py-0.5 text-xs font-semibold border border-[var(--border-color)] bg-[var(--warning-bg)] text-[var(--warning)]">In Progress</span>
+                                            @elseif($task->status === 'completed')
+                                                <span class="inline-flex items-center rounded-[var(--radius-sm)] px-2.5 py-0.5 text-xs font-semibold border border-[var(--border-color)] bg-[var(--success-bg)] text-[var(--success)]">Completed</span>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="5" class="p-8 text-center text-[var(--text-muted)] font-medium">No pre check-in tasks.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        {{-- ── Section 2: Pre Check-Out ── --}}
+        @if($preCheckOutTasks->isNotEmpty() || !$filterStatus)
+            <div>
+                <div class="flex items-center gap-3 mb-3">
+                    <h3 class="text-sm font-bold text-[var(--text-primary)] uppercase tracking-wide">Pre Check-Out</h3>
+                    <span class="inline-flex items-center rounded-full bg-[var(--danger-bg)] px-2.5 py-0.5 text-[10px] font-bold text-[var(--danger)]">
+                        {{ $preCheckOutTasks->count() }} task{{ $preCheckOutTasks->count() !== 1 ? 's' : '' }}
+                    </span>
+                    <p class="text-xs text-[var(--text-muted)]">Rooms currently occupied — housekeeping scheduled during or after stay</p>
+                </div>
+
+                <div class="rounded border border-[var(--border-color)] bg-[var(--bg-card)] shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="sticky top-0 z-10 select-none">
+                                    <th class="px-4 py-3 text-xs font-semibold text-[var(--text-muted)] bg-[var(--bg-secondary)] border-b-2 border-[var(--border-color)]">Room</th>
+                                    <th class="px-4 py-3 text-xs font-semibold text-[var(--text-muted)] bg-[var(--bg-secondary)] border-b-2 border-[var(--border-color)]">Current Guest</th>
+                                    <th class="px-4 py-3 text-xs font-semibold text-[var(--text-muted)] bg-[var(--bg-secondary)] border-b-2 border-[var(--border-color)]">Assigned To</th>
+                                    <th class="px-4 py-3 text-xs font-semibold text-[var(--text-muted)] bg-[var(--bg-secondary)] border-b-2 border-[var(--border-color)] cursor-pointer hover:bg-[var(--bg-card-hover)] transition-colors" wire:click="sortBy('schedule_date')">
+                                        Schedule Date @if($sortField === 'schedule_date') {{$sortDirection === 'asc' ? '▲' : '▼'}} @endif
+                                    </th>
+                                    <th class="px-4 py-3 text-xs font-semibold text-[var(--text-muted)] bg-[var(--bg-secondary)] border-b-2 border-[var(--border-color)] cursor-pointer hover:bg-[var(--bg-card-hover)] transition-colors" wire:click="sortBy('status')">
+                                        Status @if($sortField === 'status') {{$sortDirection === 'asc' ? '▲' : '▼'}} @endif
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-[var(--border-color)] text-xs text-[var(--text-secondary)]">
+                                @forelse($preCheckOutTasks as $task)
+                                    <tr class="hover:bg-[var(--bg-card-hover)] transition-colors even:bg-[var(--bg-primary)]/50 cursor-pointer" wire:click="openRoomDetailModal({{ $task->room->id }})">
+                                        <td class="px-4 py-3.5 text-sm border-b border-[var(--border-color)]">
+                                            <div class="font-bold text-[var(--danger)] hover:underline">Room {{ $task->room->room_number }}</div>
+                                            <div class="text-[10px] text-[var(--text-muted)] mt-0.5">{{ $task->room->roomType->name }}</div>
+                                        </td>
+                                        <td class="px-4 py-3.5 text-sm border-b border-[var(--border-color)]">
+                                            @php $guestName = $task->room->activeBooking?->guest?->name ?? $task->room->currentBooking?->guest?->name; @endphp
+                                            @if($guestName)
+                                                <div class="font-semibold text-[var(--text-primary)]">{{ $guestName }}</div>
+                                                @php $checkout = $task->room->activeBooking?->check_out_date ?? $task->room->currentBooking?->check_out_date; @endphp
+                                                @if($checkout)
+                                                    <div class="text-[10px] text-[var(--text-muted)]">CO: {{ \Carbon\Carbon::parse($checkout)->format('d M Y') }}</div>
+                                                @endif
+                                            @else
+                                                <span class="text-[var(--text-muted)]">—</span>
+                                            @endif
+                                        </td>
+                                        <td class="px-4 py-3.5 text-sm border-b border-[var(--border-color)]">
+                                            <div class="font-semibold text-[var(--text-primary)]">{{ $task->staff->name }}</div>
+                                        </td>
+                                        <td class="px-4 py-3.5 text-sm border-b border-[var(--border-color)] text-[var(--text-muted)] font-mono">
+                                            {{ \Carbon\Carbon::parse($task->schedule_date)->format('d M Y') }}
+                                        </td>
+                                        <td class="px-4 py-3.5 text-sm border-b border-[var(--border-color)]">
+                                            @if($task->status === 'scheduled')
+                                                <span class="inline-flex items-center rounded-[var(--radius-sm)] px-2.5 py-0.5 text-xs font-semibold border border-[var(--border-color)] bg-[var(--info-bg)] text-[var(--info)]">Scheduled</span>
+                                            @elseif($task->status === 'in_progress')
+                                                <span class="inline-flex items-center rounded-[var(--radius-sm)] px-2.5 py-0.5 text-xs font-semibold border border-[var(--border-color)] bg-[var(--warning-bg)] text-[var(--warning)]">In Progress</span>
+                                            @elseif($task->status === 'completed')
+                                                <span class="inline-flex items-center rounded-[var(--radius-sm)] px-2.5 py-0.5 text-xs font-semibold border border-[var(--border-color)] bg-[var(--success-bg)] text-[var(--success)]">Completed</span>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="5" class="p-8 text-center text-[var(--text-muted)] font-medium">No pre check-out tasks.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        {{-- ── Section 3: General / Other Tasks ── --}}
+        <div>
+            <div class="flex items-center gap-3 mb-3">
+                <h3 class="text-sm font-bold text-[var(--text-primary)] uppercase tracking-wide">General Tasks</h3>
+                <span class="inline-flex items-center rounded-full bg-[var(--bg-secondary)] px-2.5 py-0.5 text-[10px] font-bold text-[var(--text-secondary)]">
+                    {{ $generalTasks->count() }} task{{ $generalTasks->count() !== 1 ? 's' : '' }}
+                </span>
+                <p class="text-xs text-[var(--text-muted)]">Post-checkout cleaning, maintenance, and general housekeeping</p>
+            </div>
 
             <div class="rounded border border-[var(--border-color)] bg-[var(--bg-card)] shadow-sm overflow-hidden">
                 <div class="overflow-x-auto">
@@ -31,19 +193,19 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-[var(--border-color)] text-xs text-[var(--text-secondary)]">
-                            @forelse($tasks as $task)
+                            @forelse($generalTasks as $task)
                                 <tr class="hover:bg-[var(--bg-card-hover)] transition-colors even:bg-[var(--bg-primary)]/50 cursor-pointer" wire:click="openRoomDetailModal({{ $task->room->id }})">
-                                    <td class="px-4 py-3.5 text-sm border-b border-[var(--border-color)] hover:bg-[var(--bg-secondary)]">
-                                        <div class="font-bold text-[var(--text-primary)] hover:underline text-[var(--info)]">Room {{ $task->room->room_number }}</div>
+                                    <td class="px-4 py-3.5 text-sm border-b border-[var(--border-color)]">
+                                        <div class="font-bold text-[var(--text-primary)] hover:underline">Room {{ $task->room->room_number }}</div>
                                         <div class="text-[10px] text-[var(--text-muted)] mt-0.5">{{ $task->room->roomType->name }}</div>
                                     </td>
-                                    <td class="px-4 py-3.5 text-sm border-b border-[var(--border-color)] hover:bg-[var(--bg-secondary)]">
+                                    <td class="px-4 py-3.5 text-sm border-b border-[var(--border-color)]">
                                         <div class="font-semibold text-[var(--text-primary)]">{{ $task->staff->name }}</div>
                                     </td>
-                                    <td class="px-4 py-3.5 text-sm border-b border-[var(--border-color)] hover:bg-[var(--bg-secondary)] text-[var(--text-muted)] font-mono">
-                                        {{ Carbon\Carbon::parse($task->schedule_date)->format('d M Y') }}
+                                    <td class="px-4 py-3.5 text-sm border-b border-[var(--border-color)] text-[var(--text-muted)] font-mono">
+                                        {{ \Carbon\Carbon::parse($task->schedule_date)->format('d M Y') }}
                                     </td>
-                                    <td class="px-4 py-3.5 text-sm border-b border-[var(--border-color)] hover:bg-[var(--bg-secondary)]">
+                                    <td class="px-4 py-3.5 text-sm border-b border-[var(--border-color)]">
                                         @if($task->status === 'scheduled')
                                             <span class="inline-flex items-center rounded-[var(--radius-sm)] px-2.5 py-0.5 text-xs font-semibold border border-[var(--border-color)] bg-[var(--info-bg)] text-[var(--info)]">Scheduled</span>
                                         @elseif($task->status === 'in_progress')
@@ -55,38 +217,18 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="p-8 text-center text-[var(--text-muted)] font-medium">
-                                        No tasks scheduled.
-                                    </td>
+                                    <td colspan="4" class="p-8 text-center text-[var(--text-muted)] font-medium">No general tasks.</td>
                                 </tr>
                             @endforelse
                         </tbody>
                     </table>
                 </div>
+                {{-- Pagination for full list --}}
                 @if($tasks->hasPages())
                     <div class="p-4 border-t border-[var(--border-color)] bg-[var(--bg-primary)]/30">
                         {{ $tasks->links('livewire.dashboard.pagination') }}
                     </div>
                 @endif
-            </div>
-        </div>
-
-        {{-- Right: Rooms Needing Cleaning Panel --}}
-        <div class="space-y-6">
-            <h3 class="text-base font-semibold text-[var(--text-primary)] mb-2">Rooms Needing Action</h3>
-
-            <div class="rounded border border-[var(--border-color)] bg-[var(--bg-card)] p-5 space-y-4 shadow-sm">
-                @forelse($unassignedRooms as $room)
-                    <div class="flex items-center justify-between p-3 rounded border border-[var(--border-color)] bg-[var(--bg-primary)] hover:bg-[var(--bg-card-hover)] transition-colors cursor-pointer" wire:click="openRoomDetailModal({{ $room->id }})">
-                        <div>
-                            <span class="font-bold text-[var(--text-primary)] hover:underline text-[var(--info)]">Room {{ $room->room_number }}</span>
-                            <span class="inline-flex items-center rounded-[var(--radius-sm)] px-2.5 py-0.5 text-xs font-semibold border border-[var(--border-color)] bg-[var(--danger-bg)] text-[var(--danger)] ml-2">{{ $room->status }}</span>
-                            <p class="text-[10px] text-[var(--text-muted)] mt-0.5">{{ $room->roomType->name }}</p>
-                        </div>
-                    </div>
-                @empty
-                    <p class="text-xs text-[var(--text-muted)] text-center py-4">All dirty/maintenance rooms have tasks assigned.</p>
-                @endforelse
             </div>
         </div>
     </div>
@@ -97,7 +239,8 @@
     @if($showRoomDetailModal && $detailRoom)
         @php
             $latestRoomTask = $detailRoom->housekeepingTasks->first();
-            $activeBooking = $detailRoom->activeBooking;
+            $activeBooking  = $detailRoom->activeBooking ?? $detailRoom->currentBooking;
+            $taskCompleted  = $latestRoomTask && $latestRoomTask->status === 'completed';
         @endphp
         <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
             <div class="fixed inset-0" wire:click="closeRoomDetailModal"></div>
@@ -119,17 +262,20 @@
                             @elseif($detailRoom->status === 'cleaning') bg-[var(--warning-bg)] text-[var(--warning)]
                             @elseif($detailRoom->status === 'maintenance') bg-red-50 text-red-600
                             @else bg-[var(--info-bg)] text-[var(--info)] @endif">
-                            {{ $detailRoom->status === 'available' ? 'Vakant' : $detailRoom->status }}
+                            {{ $detailRoom->status === 'available' ? 'Vakant' : ucfirst($detailRoom->status) }}
                         </span>
                     </div>
 
                     {{-- Active Guest Details --}}
                     @if($activeBooking)
                         <div class="rounded border border-[var(--border-color)] bg-[var(--bg-primary)] p-3 space-y-2">
-                            <span class="text-sm font-medium text-[var(--text-secondary)] mb-2 block">Active Guest</span>
+                            <span class="text-sm font-medium text-[var(--text-secondary)] mb-2 block">
+                                {{ in_array($detailRoom->status, ['occupied', 'cleaning']) ? 'Guest (Checked In)' : 'Incoming Guest' }}
+                            </span>
                             <div class="space-y-1">
                                 <p class="flex justify-between"><span>Guest:</span> <strong class="text-[var(--text-primary)]">{{ $activeBooking->guest->name }}</strong></p>
-                                <p class="flex justify-between"><span>Check-out Date:</span> <span class="font-semibold text-[var(--text-primary)]">{{ $activeBooking->check_out_date->format('d M Y') }}</span></p>
+                                <p class="flex justify-between"><span>Check-In:</span> <span class="font-semibold text-[var(--text-primary)]">{{ \Carbon\Carbon::parse($activeBooking->check_in_date)->format('d M Y') }}</span></p>
+                                <p class="flex justify-between"><span>Check-Out:</span> <span class="font-semibold text-[var(--text-primary)]">{{ \Carbon\Carbon::parse($activeBooking->check_out_date)->format('d M Y') }}</span></p>
                             </div>
                         </div>
                     @endif
@@ -140,13 +286,13 @@
                             <span class="text-sm font-medium text-[var(--text-secondary)] mb-2 block">Housekeeping Task</span>
                             <div class="space-y-1">
                                 <p class="flex justify-between"><span>Assigned Staff:</span> <strong class="text-[var(--text-primary)]">{{ $latestRoomTask->staff->name }}</strong></p>
-                                <p class="flex justify-between"><span>Schedule Date:</span> <span class="font-semibold text-[var(--text-primary)]">{{ Carbon\Carbon::parse($latestRoomTask->schedule_date)->format('d M Y') }}</span></p>
+                                <p class="flex justify-between"><span>Schedule Date:</span> <span class="font-semibold text-[var(--text-primary)]">{{ \Carbon\Carbon::parse($latestRoomTask->schedule_date)->format('d M Y') }}</span></p>
                                 <p class="flex justify-between"><span>Task Status:</span>
                                     <span class="text-xs font-semibold
                                         @if($latestRoomTask->status === 'completed') text-[var(--success)]
                                         @elseif($latestRoomTask->status === 'in_progress') text-[var(--warning)]
                                         @else text-[var(--info)] @endif">
-                                        {{ $latestRoomTask->status }}
+                                        {{ ucfirst(str_replace('_', ' ', $latestRoomTask->status)) }}
                                     </span>
                                 </p>
                             </div>
@@ -154,44 +300,46 @@
                     @endif
 
                     {{-- Cleaning Report Input --}}
-                    <div class="space-y-1.5">
-                        <label class="text-sm font-medium text-[var(--text-secondary)] mb-1.5 block">Cleaning / Inspection Report Information</label>
-                        <textarea wire:model="cleaningNotes" placeholder="Write cleaning description or items replaced/found..." class="w-full rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-2 text-xs text-[var(--text-primary)] focus:border-[#111111] focus:outline-none transition-all h-20 resize-none"></textarea>
-                    </div>
+                    @if(!$taskCompleted)
+                        <div class="space-y-1.5">
+                            <label class="text-sm font-medium text-[var(--text-secondary)] mb-1.5 block">Cleaning / Inspection Report Information</label>
+                            <textarea wire:model="cleaningNotes" placeholder="Write cleaning description or items replaced/found..." class="w-full rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-2 text-xs text-[var(--text-primary)] focus:border-[#111111] focus:outline-none transition-all h-20 resize-none"></textarea>
+                        </div>
 
-                    {{-- Integrated issue report inside details modal --}}
-                    <div class="space-y-2 border-t border-[var(--border-color)] pt-3">
-                        <label class="inline-flex items-center gap-2 cursor-pointer select-none">
-                            <input type="checkbox" wire:model.live="hasIssue" class="rounded border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-primary)] focus:ring-0 h-4 w-4 cursor-pointer">
-                            <span class="text-xs text-[var(--text-primary)] font-semibold">Report an issue/alert with this room</span>
-                        </label>
+                        {{-- Integrated issue report inside details modal --}}
+                        <div class="space-y-2 border-t border-[var(--border-color)] pt-3">
+                            <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+                                <input type="checkbox" wire:model.live="hasIssue" class="rounded border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-primary)] focus:ring-0 h-4 w-4 cursor-pointer">
+                                <span class="text-xs text-[var(--text-primary)] font-semibold">Report an issue/alert with this room</span>
+                            </label>
 
-                        @if($hasIssue)
-                            <div class="rounded border border-red-500/30 bg-red-50/5 p-3 space-y-3 mt-2">
-                                <div>
-                                    <label class="text-sm font-medium text-[var(--text-secondary)] mb-1.5 block">Issue Type</label>
-                                    <div class="flex items-center gap-4 mt-1">
-                                        <label class="inline-flex items-center text-xs text-[var(--text-primary)] font-semibold cursor-pointer">
-                                            <input type="radio" wire:model.live="issueType" value="missing_item" class="mr-2">
-                                            Missing Item
-                                        </label>
-                                        <label class="inline-flex items-center text-xs text-[var(--text-primary)] font-semibold cursor-pointer">
-                                            <input type="radio" wire:model.live="issueType" value="maintenance" class="mr-2">
-                                            Maintenance Required
-                                        </label>
+                            @if($hasIssue)
+                                <div class="rounded border border-red-500/30 bg-red-50/5 p-3 space-y-3 mt-2">
+                                    <div>
+                                        <label class="text-sm font-medium text-[var(--text-secondary)] mb-1.5 block">Issue Type</label>
+                                        <div class="flex items-center gap-4 mt-1">
+                                            <label class="inline-flex items-center text-xs text-[var(--text-primary)] font-semibold cursor-pointer">
+                                                <input type="radio" wire:model.live="issueType" value="missing_item" class="mr-2">
+                                                Missing Item
+                                            </label>
+                                            <label class="inline-flex items-center text-xs text-[var(--text-primary)] font-semibold cursor-pointer">
+                                                <input type="radio" wire:model.live="issueType" value="maintenance" class="mr-2">
+                                                Maintenance Required
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="text-sm font-medium text-[var(--text-secondary)] mb-1.5 block">Issue Description</label>
+                                        <input type="text" wire:model="issueDescription" placeholder="e.g. Towel missing, AC remote broken" class="w-full rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-1.5 text-xs text-[var(--text-primary)] focus:border-[#111111] focus:outline-none transition-all" required>
+                                        @error('issueDescription') <span class="text-xs text-red-500 font-bold mt-1 block">{{ $message }}</span> @enderror
                                     </div>
                                 </div>
-                                <div>
-                                    <label class="text-sm font-medium text-[var(--text-secondary)] mb-1.5 block">Issue Description</label>
-                                    <input type="text" wire:model="issueDescription" placeholder="e.g. Towel missing, AC remote broken" class="w-full rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-1.5 text-xs text-[var(--text-primary)] focus:border-[#111111] focus:outline-none transition-all" required>
-                                    @error('issueDescription') <span class="text-xs text-red-500 font-bold mt-1 block">{{ $message }}</span> @enderror
-                                </div>
-                            </div>
-                        @endif
-                    </div>
+                            @endif
+                        </div>
+                    @endif
 
-                    {{-- Assign Housekeeping Task form inside modal --}}
-                    @if((!$latestRoomTask || $latestRoomTask->status === 'completed') && $detailRoom->status !== 'available')
+                    {{-- Assign Housekeeping Task — hidden when task is completed --}}
+                    @if(!$taskCompleted && (!$latestRoomTask || $latestRoomTask->status === 'completed') && $detailRoom->status !== 'available')
                         <div class="rounded border border-[var(--border-color)] bg-[var(--bg-primary)] p-3 space-y-3">
                             <span class="text-sm font-medium text-[var(--text-secondary)] mb-2 block">Assign Housekeeping Task</span>
                             <div class="space-y-3">
@@ -220,7 +368,7 @@
                 <div class="flex justify-end gap-2 border-t border-[var(--border-color)] pt-4 flex-wrap">
                     <button type="button" wire:click="closeRoomDetailModal" class="rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-3.5 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] transition-colors">Close</button>
 
-                    @if($latestRoomTask && $latestRoomTask->status !== 'completed')
+                    @if($latestRoomTask && !$taskCompleted)
                         @php
                             $isPreCheckInTask = \App\Models\Booking::where('room_id', $detailRoom->id)->where('status', 'confirmed')->exists();
                         @endphp

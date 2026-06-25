@@ -59,4 +59,20 @@
             </span>
         </button>
     </form>
+
+    <div class="mt-6">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="h-px flex-1 bg-[var(--border-color)]"></div>
+            <span class="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider">Quick demo login</span>
+            <div class="h-px flex-1 bg-[var(--border-color)]"></div>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+            @foreach (['superadmin' => 'Super Admin', 'admin' => 'Admin', 'front_desk' => 'Front Desk', 'housekeeping' => 'Housekeeping', 'fnb' => 'F&B'] as $slug => $label)
+                <button type="button" wire:click="loginAs('{{ $slug }}')" wire:loading.attr="disabled"
+                    class="rounded border border-[var(--border-color)] bg-[var(--bg-card)] px-3 py-2.5 text-xs font-semibold text-[var(--text-primary)] hover:shadow-md hover:border-[#2563eb] transition-all duration-150 active:scale-[0.98] {{ $loop->last && $loop->iteration % 2 ? 'col-span-2' : '' }}">
+                    {{ $label }}
+                </button>
+            @endforeach
+        </div>
+    </div>
 </div>

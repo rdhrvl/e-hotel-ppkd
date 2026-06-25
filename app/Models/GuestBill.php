@@ -18,7 +18,8 @@ class GuestBill extends Model
         'total_room_charges',
         'total_extra_charges',
         'paid_amount',
-        'status', // 'unpaid', 'paid'
+        'overpayment_amount',
+        'status', // 'unpaid', 'partially_paid', 'paid'
     ];
 
     protected $casts = [
@@ -26,6 +27,7 @@ class GuestBill extends Model
         'total_room_charges' => 'decimal:2',
         'total_extra_charges' => 'decimal:2',
         'paid_amount' => 'decimal:2',
+        'overpayment_amount' => 'decimal:2',
     ];
 
     /** @return BelongsTo<Booking, $this> */
@@ -48,5 +50,23 @@ class GuestBill extends Model
     public function getBalanceAttribute(): float
     {
         return (float) ($this->total_amount - $this->deposit_amount - $this->paid_amount);
+    }
+
+    /**
+     * Recalculate status of the bill based on current totals.
+     */
+    public function calculateStatus(): string
+    {
+        $sisa = $this->balance;
+
+        if ($sisa <= 0) {
+            return 'paid';
+        }
+
+        if ((float) $this->deposit_amount > 0 || (float) $this->paid_amount > 0) {
+            return 'partially_paid';
+        }
+
+        return 'unpaid';
     }
 }
